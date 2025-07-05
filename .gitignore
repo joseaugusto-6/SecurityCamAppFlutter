@@ -1,0 +1,90 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Flutter
+.flutter-plugins
+.flutter-plugins-dependencies
+.dart_tool/
+.idea/
+.vscode/
+build/
+*.iml
+.packages
+.env
+.DS_Store
+Pods/
+.symlinks/
+.classpath
+.project
+.settings/
+.cproject
+.externalToolBuilders/
+.apt_generated/
+.factorypath
+.metadata
+.gradle
+# Android specific
+android/.gradle/
+android/captures/
+android/app/build/
+android/app/.cxx/
+android/app/src/debug/
+android/app/src/profile/
+android/local.properties
+# Para el archivo google-services.json y credenciales
+android/app/google-services.json # <--- ¡Asegúrate que esta línea esté para no subirlo!
+*.jks
+*.keystore
+*.properties
+# iOS specific
+ios/.symlinks/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Pods/
+ios/.bundle/
+# VS Code
+.vscode/
+# Firebase Service Account Keys (si estuvieran fuera de android/app/)
+*.json # Considera si tienes otros json que sí quieres subir. Si no, esta ignora todos.
+# General
+*.log
+*.tmp
+.history/
