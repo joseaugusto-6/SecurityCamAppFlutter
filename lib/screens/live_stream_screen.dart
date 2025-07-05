@@ -1,114 +1,135 @@
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart'; // ¡Importa esto!
+import 'package:url_launcher/url_launcher.dart'; // Para abrir URLs externas
+import 'package:my_first_app/services/api_service.dart'; // Para obtener el token de sesión
+import 'package:my_first_app/screens/login_screen.dart'; // Para redirigir en caso de fallo de autenticación
 
-// Definición de la URL del stream de video de tu PC
-// ¡MUY IMPORTANTE! Reemplaza 'TU_IP_LOCAL_DEL_PC' con la IP real de tu PC
-// (ej. '192.168.1.100'). Asegúrate de que tu PC esté corriendo camera_stream.py.
-const String STREAM_URL = 'http://192.168.68.112:5000/';
+// URL base de la página web que incrusta el stream
+const String WEB_STREAM_BASE_URL =
+    'https://tesisdeteccion.ddns.net/live_stream'; // ¡ACTUALIZA ESTO!
 
 class LiveStreamScreen extends StatefulWidget {
-  const LiveStreamScreen({super.key});
+  final String cameraId; // El ID de la cámara que esta pantalla va a mostrar
+
+  const LiveStreamScreen({
+    super.key,
+    required this.cameraId,
+  }); // Constructor para recibir el camera_id
 
   @override
   State<LiveStreamScreen> createState() => _LiveStreamScreenState();
 }
 
 class _LiveStreamScreenState extends State<LiveStreamScreen> {
-  late final WebViewController _controller;
+  String _statusMessage = 'Preparando stream...';
   bool _isLoading = true;
-  String _errorMessage = '';
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
     super.initState();
-    // Inicializar el controlador del WebView
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted) // Permitir JavaScript
-      ..setBackgroundColor(const Color(0x00000000)) // Fondo transparente
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onProgress: (int progress) {
-            // Puedes mostrar un indicador de progreso si lo deseas
-            debugPrint('WebView is loading (progress: $progress%)');
-          },
-          onPageStarted: (String url) {
-            debugPrint('Page started loading: $url');
-            setState(() {
-              _isLoading = true; // Activar el cargador
-              _errorMessage = '';
-            });
-          },
-          onPageFinished: (String url) {
-            debugPrint('Page finished loading: $url');
-            setState(() {
-              _isLoading = false; // Desactivar el cargador
-            });
-          },
-          onWebResourceError: (WebResourceError error) {
-            debugPrint('''
-              Page resource error:
-                code: ${error.errorCode}
-                description: ${error.description}
-                errorType: ${error.errorType}
-                isForMainFrame: ${error.isForMainFrame}
-                      ''');
-            setState(() {
-              _isLoading = false;
-              _errorMessage = 'Error al cargar el stream: ${error.description}';
-            });
-          },
-          onNavigationRequest: (NavigationRequest request) {
-            // Permite o bloquea la navegación dentro del WebView
-            // Si quieres que el usuario no pueda navegar fuera de tu stream, puedes bloquearlo
-            if (request.url.startsWith(STREAM_URL)) {
-              return NavigationDecision.navigate;
-            }
-            debugPrint('Blocking navigation to ${request.url}');
-            return NavigationDecision.prevent;
-          },
+    _prepareAndLaunchStream(); // Inicia el proceso para obtener token y lanzar la URL
+  }
+
+  Future<void> _prepareAndLaunchStream() async {
+    setState(() {
+      _isLoading = true;
+      _statusMessage =
+          'Obteniendo token de sesión para la cámara ${widget.cameraId}...';
+    });
+
+    try {
+      // 1. Obtener el token de sesión del stream desde el backend
+      final Map<String, dynamic> sessionData = await _apiService
+          .getStreamSessionToken(widget.cameraId);
+      final String sessionToken = sessionData['session_token'];
+
+      // 2. Construir la URL completa con los parámetros de la cámara y el token
+      final Uri streamUrl = Uri.parse(
+        '$WEB_STREAM_BASE_URL?camera_id=${widget.cameraId}&session_token=$sessionToken',
+      );
+
+      // 3. Lanzar la URL en el navegador externo
+      setState(() {
+        _statusMessage = 'Abriendo stream en navegador...';
+        _isLoading = false;
+      });
+
+      if (!await launchUrl(streamUrl, mode: LaunchMode.externalApplication)) {
+        if (!mounted) return;
+        setState(() {
+          _statusMessage = 'Error: No se pudo abrir el stream en el navegador.';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error: No se pudo abrir el stream en el navegador: $streamUrl',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } else {
+        // Si la URL se lanza con éxito, la pantalla principal de la app ya no necesita un cargador
+        // El usuario ahora interactuará con el navegador.
+        if (!mounted) return;
+        // Opcional: Cerrar esta pantalla de Flutter si quieres que el navegador sea la única vista.
+        // Navigator.pop(context);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _statusMessage =
+            'Error al preparar el stream: ${e.toString()}. Por favor, intente de nuevo.';
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
         ),
-      )
-      ..loadRequest(Uri.parse(STREAM_URL)); // Cargar la URL de tu stream
+      );
+      // Si el error indica fallo de autenticación, redirigir al login
+      if (e.toString().contains('Authentication failed')) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Video en Vivo'),
+        title: const Text('Video en Vivo (Web)'),
         backgroundColor: Theme.of(context).primaryColor,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              _controller.reload(); // Recargar el WebView
-            },
-            tooltip: 'Recargar Stream',
+            icon: const Icon(Icons.open_in_browser),
+            onPressed: _prepareAndLaunchStream, // Reintentar abrir la URL
+            tooltip: 'Abrir en Navegador',
           ),
         ],
       ),
-      body: Stack(
-        // Usar Stack para superponer el cargador
-        children: [
-          WebViewWidget(controller: _controller), // El widget WebView
-          if (_isLoading) // Mostrar cargador si _isLoading es true
-            const Center(child: CircularProgressIndicator()),
-          if (_errorMessage.isNotEmpty) // Mostrar mensaje de error si hay uno
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error, color: Colors.red, size: 50),
-                  const SizedBox(height: 10),
-                  Text(
-                    _errorMessage,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.red, fontSize: 16),
-                  ),
-                ],
-              ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (_isLoading) const CircularProgressIndicator(),
+            const SizedBox(height: 20),
+            Text(
+              _statusMessage,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 18),
             ),
-        ],
+            const SizedBox(height: 20),
+            if (!_isLoading) // Mostrar botón de reintentar solo si no está cargando
+              ElevatedButton(
+                onPressed: _prepareAndLaunchStream,
+                child: const Text('Reintentar'),
+              ),
+          ],
+        ),
       ),
     );
   }

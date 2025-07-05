@@ -12,6 +12,7 @@ class ApiService {
   final FlutterSecureStorage _secureStorage;
   final AuthService _authService;
 
+  // Constructor de ApiService. Se recomienda pasar las dependencias.
   ApiService({FlutterSecureStorage? secureStorage, AuthService? authService})
     : _secureStorage = secureStorage ?? const FlutterSecureStorage(),
       _authService = authService ?? AuthService();
@@ -59,7 +60,9 @@ class ApiService {
   }
 
   // Método: Obtener la lista de dispositivos del usuario
-  Future<List<String>> getUserDevices() async {
+  // Método: Obtener la lista de dispositivos del usuario (ahora devuelve Map<String, dynamic>)
+  Future<List<Map<String, dynamic>>> getUserDevices() async {
+    // <-- CAMBIO CLAVE: List<Map<String, dynamic>>
     try {
       final String? token = await _authService.getJwtToken();
 
@@ -77,7 +80,10 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
-        return List<String>.from(responseData['devices'] ?? []);
+        // Asegurarse de que la lista es de diccionarios
+        return List<Map<String, dynamic>>.from(
+          responseData['devices'] ?? [],
+        ); // <-- CAMBIO CLAVE
       } else if (response.statusCode == 401) {
         await _authService.deleteJwtToken();
         throw Exception('Authentication failed. Please login again.');
@@ -128,7 +134,7 @@ class ApiService {
     }
   }
 
-  // NUEVO MÉTODO: Eliminar un dispositivo para el usuario actual
+  // Método: Eliminar un dispositivo para el usuario actual
   Future<void> removeDevice(String deviceId) async {
     try {
       final String? token = await _authService.getJwtToken();
@@ -139,23 +145,18 @@ class ApiService {
 
       final response = await http.post(
         // Usamos POST como en el backend
-        Uri.parse(
-          '$BASE_URL/remove_device',
-        ), // Tu endpoint para eliminar dispositivo
+        Uri.parse('$BASE_URL/remove_device'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode({
-          'device_id': deviceId,
-        }), // Enviar el ID del dispositivo
+        body: json.encode({'device_id': deviceId}),
       );
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
         print('DEBUG_API: Dispositivo eliminado: ${responseData['msg']}');
       } else if (response.statusCode == 404) {
-        // 404 Not Found si el dispositivo no está asociado
         final Map<String, dynamic> errorData = json.decode(response.body);
         throw Exception(
           errorData['msg'] ?? 'El dispositivo no está asociado a este usuario.',
@@ -169,6 +170,86 @@ class ApiService {
       }
     } catch (e) {
       print('DEBUG_API: Error removing device: $e');
+      rethrow;
+    }
+  }
+
+  // Método: Obtener un token de sesión temporal para el stream
+  Future<Map<String, dynamic>> getStreamSessionToken(String cameraId) async {
+    try {
+      final String? token = await _authService.getJwtToken();
+
+      if (token == null) {
+        throw Exception('No JWT token found. User not authenticated.');
+      }
+
+      final response = await http.post(
+        Uri.parse('$BASE_URL/get_stream_session_token'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({'camera_id': cameraId}),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        await _authService.deleteJwtToken();
+        throw Exception('Authentication failed. Please login again.');
+      } else {
+        final Map<String, dynamic> errorData = json.decode(response.body);
+        throw Exception(
+          errorData['msg'] ?? 'Failed to get stream session token.',
+        );
+      }
+    } catch (e) {
+      print('DEBUG_API: Error getting stream session token: $e');
+      rethrow;
+    }
+  }
+
+  // NUEVO MÉTODO: Enviar un comando de cambio de modo a una cámara
+  Future<void> setCameraMode(String cameraId, String mode) async {
+    try {
+      final String? token = await _authService.getJwtToken();
+
+      if (token == null) {
+        throw Exception('No JWT token found. User not authenticated.');
+      }
+
+      final response = await http.post(
+        Uri.parse(
+          '$BASE_URL/camera_control',
+        ), // Tu endpoint de control de cámara
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'camera_id': cameraId,
+          'mode': mode,
+        }), // Enviar ID y modo
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        print('DEBUG_API: Control de cámara exitoso: ${responseData['msg']}');
+      } else if (response.statusCode == 403) {
+        // Forbidden si no está autorizado
+        final Map<String, dynamic> errorData = json.decode(response.body);
+        throw Exception(
+          errorData['msg'] ?? 'No autorizado para controlar esta cámara.',
+        );
+      } else if (response.statusCode == 401) {
+        await _authService.deleteJwtToken();
+        throw Exception('Authentication failed. Please login again.');
+      } else {
+        final Map<String, dynamic> errorData = json.decode(response.body);
+        throw Exception(errorData['msg'] ?? 'Failed to control camera.');
+      }
+    } catch (e) {
+      print('DEBUG_API: Error al enviar comando a la cámara: $e');
       rethrow;
     }
   }

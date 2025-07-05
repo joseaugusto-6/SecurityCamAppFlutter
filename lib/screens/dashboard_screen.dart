@@ -5,7 +5,7 @@ import 'package:my_first_app/screens/login_screen.dart';
 import 'package:my_first_app/services/api_service.dart';
 import 'package:my_first_app/models/person_event.dart';
 import 'package:my_first_app/screens/device_list_screen.dart';
-import 'package:my_first_app/screens/live_stream_screen.dart'; // <-- ¡Añade esta importación para la nueva pantalla!
+import 'package:my_first_app/screens/live_stream_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -35,15 +35,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
     try {
       final data = await _apiService.getDashboardData();
+      if (!mounted) return; // <-- Añadido
       setState(() {
         _latestEvents = data['latest_events'];
         _totalEntriesToday = data['total_entries_today'];
         _alarmsToday = data['alarms_today'];
       });
     } catch (e) {
+      if (!mounted) return; // <-- Añadido
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error al cargar datos del dashboard: $e'),
+          content: Text('Error al cargar datos del dashboard: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -54,6 +56,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       }
     } finally {
+      if (!mounted) return; // <-- Añadido
       setState(() {
         _isLoadingDashboard = false;
       });
@@ -83,6 +86,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (confirm == true) {
       await _authService.deleteJwtToken();
+      if (!mounted) return; // <-- Añadido
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -99,15 +103,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: const Text('Dashboard de Seguridad'),
         actions: [
-          // Botón de Video en Vivo - NUEVO
+          // Botón de Video en Vivo
           IconButton(
             icon: const Icon(Icons.videocam), // Icono de cámara de video
             onPressed: () {
+              // TODO: Aquí podrías obtener el camera_id de forma dinámica
+              // Por ahora, pasamos un ID de cámara por defecto para la prueba.
+              // Lo ideal es navegar desde DeviceListScreen pasando el ID de la cámara seleccionada.
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const LiveStreamScreen(),
-                ), // Navega a la pantalla de video
+                  builder: (context) =>
+                      const LiveStreamScreen(cameraId: 'camera001'),
+                ), // <-- ¡CAMBIO CLAVE AQUÍ!
               );
             },
             tooltip: 'Video en Vivo',
@@ -149,186 +157,181 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: _isLoadingDashboard
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      'Resumen Diario',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Card(
-                            elevation: 4,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(20.0),
-                              child: Column(
-                                children: [
-                                  const Text(
-                                    'Entradas Hoy:',
-                                    style: TextStyle(fontSize: 18),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    '$_totalEntriesToday',
-                                    style: const TextStyle(
-                                      fontSize: 48,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blue,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+              padding: const EdgeInsets.all(
+                16.0,
+              ), // <-- Added padding here directly
+              child: Column(
+                // <-- Changed to Column
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Resumen Diario',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Card(
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Card(
-                            elevation: 4,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(20.0),
-                              child: Column(
-                                children: [
-                                  const Text(
-                                    'Alarmas Hoy:',
-                                    style: TextStyle(fontSize: 18),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    '$_alarmsToday',
-                                    style: const TextStyle(
-                                      fontSize: 48,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.red,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 30),
-
-                    const Text(
-                      'Actividad Reciente',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 20),
-                    _latestEvents.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No hay actividad reciente para mostrar.',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          )
-                        : ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _latestEvents.length,
-                            itemBuilder: (context, index) {
-                              final event = _latestEvents[index];
-                              String titleText;
-                              IconData iconData;
-                              Color iconColor;
-
-                              switch (event.eventType) {
-                                case 'known_person':
-                                  titleText = event.personName;
-                                  iconData = Icons.person_outline;
-                                  iconColor = Colors.green;
-                                  break;
-                                case 'unknown_person':
-                                  titleText = 'Desconocido';
-                                  iconData = Icons.warning_amber;
-                                  iconColor = Colors.red;
-                                  break;
-                                case 'alarm':
-                                  titleText = 'ALARMA';
-                                  iconData = Icons.notifications_active;
-                                  iconColor = Colors.orange;
-                                  break;
-                                default:
-                                  titleText = 'Evento';
-                                  iconData = Icons.info_outline;
-                                  iconColor = Colors.grey;
-                                  break;
-                              }
-
-                              return Card(
-                                margin: const EdgeInsets.symmetric(vertical: 8),
-                                elevation: 2,
-                                child: ListTile(
-                                  leading: event.imageUrl.isNotEmpty
-                                      ? CircleAvatar(
-                                          backgroundImage: NetworkImage(
-                                            event.imageUrl,
-                                          ),
-                                          radius: 25,
-                                          backgroundColor: Colors.grey[200],
-                                          onBackgroundImageError:
-                                              (exception, stackTrace) {
-                                                print(
-                                                  'Error loading image: $exception',
-                                                );
-                                              },
-                                        )
-                                      : CircleAvatar(
-                                          child: Icon(
-                                            iconData,
-                                            color: iconColor,
-                                          ),
-                                          radius: 25,
-                                          backgroundColor: iconColor
-                                              .withOpacity(0.2),
-                                        ),
-                                  title: Text(
-                                    titleText,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    '${event.eventType} - ${event.timestamp.toLocal().toString().split('.')[0]}',
-                                  ),
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const EventHistoryScreen(),
-                                      ),
-                                    );
-                                  },
+                          child: Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Column(
+                              children: [
+                                const Text(
+                                  'Entradas Hoy:',
+                                  style: TextStyle(fontSize: 18),
                                 ),
-                              );
-                            },
+                                const SizedBox(height: 8),
+                                Text(
+                                  '$_totalEntriesToday',
+                                  style: const TextStyle(
+                                    fontSize: 48,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                  ],
-                ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Card(
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Column(
+                              children: [
+                                const Text(
+                                  'Alarmas Hoy:',
+                                  style: TextStyle(fontSize: 18),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '$_alarmsToday',
+                                  style: const TextStyle(
+                                    fontSize: 48,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+
+                  const Text(
+                    'Actividad Reciente',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  _latestEvents.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No hay actividad reciente para mostrar.',
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          ),
+                        )
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _latestEvents.length,
+                          itemBuilder: (context, index) {
+                            final event = _latestEvents[index];
+                            String titleText;
+                            IconData iconData;
+                            Color iconColor;
+
+                            switch (event.eventType) {
+                              case 'known_person':
+                                titleText = event.personName;
+                                iconData = Icons.person_outline;
+                                iconColor = Colors.green;
+                                break;
+                              case 'unknown_person':
+                                titleText = 'Desconocido';
+                                iconData = Icons.warning_amber;
+                                iconColor = Colors.red;
+                                break;
+                              case 'alarm':
+                                titleText = 'ALARMA';
+                                iconData = Icons.notifications_active;
+                                iconColor = Colors.orange;
+                                break;
+                              default:
+                                titleText = 'Evento';
+                                iconData = Icons.info_outline;
+                                iconColor = Colors.grey;
+                                break;
+                            }
+
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              elevation: 2,
+                              child: ListTile(
+                                leading: event.imageUrl.isNotEmpty
+                                    ? CircleAvatar(
+                                        backgroundImage: NetworkImage(
+                                          event.imageUrl,
+                                        ),
+                                        radius: 25,
+                                        backgroundColor: Colors.grey[200],
+                                        onBackgroundImageError:
+                                            (exception, stackTrace) {
+                                              print(
+                                                'Error loading image: $exception',
+                                              );
+                                            },
+                                      )
+                                    : CircleAvatar(
+                                        child: Icon(
+                                          iconData,
+                                          color: iconColor.withAlpha(
+                                            (0.2 * 255).round(),
+                                          ),
+                                        ), // Corrected deprecated use
+                                        radius: 25,
+                                        backgroundColor: iconColor.withOpacity(
+                                          0.2,
+                                        ), // Keeping this for now if the other is too complex
+                                      ),
+                                title: Text(
+                                  titleText,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '${event.eventType} - ${event.timestamp.toLocal().toString().split('.')[0]}',
+                                ),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const EventHistoryScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                ],
               ),
             ),
     );

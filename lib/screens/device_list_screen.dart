@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:my_first_app/services/api_service.dart'; // Importa ApiService
-import 'package:my_first_app/screens/login_screen.dart'; // Importa LoginScreen
+import 'package:my_first_app/services/api_service.dart';
+import 'package:my_first_app/screens/login_screen.dart';
+import 'package:my_first_app/screens/live_stream_screen.dart';
 
 class DeviceListScreen extends StatefulWidget {
-  const DeviceListScreen({super.key}); // Constructor correcto con key
+  const DeviceListScreen({super.key});
 
   @override
-  // Eliminado el '_' para hacer la clase pública (soluciona library_private_types_in_public_api)
   State<DeviceListScreen> createState() => DeviceListScreenState();
 }
 
-// Eliminado el '_' para hacer la clase pública
 class DeviceListScreenState extends State<DeviceListScreen> {
-  List<String> _devices = [];
+  List<Map<String, dynamic>> _devices = [];
   bool _isLoading = true;
   String _errorMessage = '';
-  final ApiService _apiService = ApiService(); // Instancia de ApiService
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
@@ -30,32 +29,35 @@ class DeviceListScreenState extends State<DeviceListScreen> {
     });
 
     try {
-      _devices = await _apiService
-          .getUserDevices(); // Llama al método correcto en ApiService
-      setState(() {
-        _isLoading = false;
-      });
+      _devices = await _apiService.getUserDevices();
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Error al cargar dispositivos: ${e.toString()}';
-        _isLoading = false;
-      });
-      // Si el error indica fallo de autenticación, redirigir al login
-      if (e.toString().contains('Authentication failed')) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-        );
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error al cargar dispositivos: ${e.toString()}';
+          _isLoading = false;
+        });
+        if (e.toString().contains('Authentication failed')) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+          );
+        }
       }
     }
   }
 
-  // Función para mostrar el diálogo de añadir dispositivo
+  // FUNCIÓN PARA MOSTRAR EL DIÁLOGO DE AÑADIR DISPOSITIVO
   Future<void> _showAddDeviceDialog() async {
+    // <-- Esta función debe estar aquí
     String? newDeviceId;
     return showDialog<void>(
       context: context,
-      barrierDismissible: false, // El usuario debe pulsar un botón
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Añadir Nuevo Dispositivo'),
@@ -87,10 +89,8 @@ class DeviceListScreenState extends State<DeviceListScreen> {
               child: const Text('Añadir'),
               onPressed: () async {
                 if (newDeviceId != null && newDeviceId!.isNotEmpty) {
-                  Navigator.of(context).pop(); // Cerrar diálogo
-                  await _addDevice(
-                    newDeviceId!,
-                  ); // Llamar a la función para añadir
+                  Navigator.of(context).pop();
+                  await _addDevice(newDeviceId!);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -108,43 +108,53 @@ class DeviceListScreenState extends State<DeviceListScreen> {
     );
   }
 
-  // Función para llamar al backend y añadir el dispositivo
+  // FUNCIÓN PARA LLAMAR AL BACKEND Y AÑADIR EL DISPOSITIVO
   Future<void> _addDevice(String deviceId) async {
+    // <-- Esta función debe estar aquí
     setState(() {
-      _isLoading = true; // Mostrar indicador de carga mientras se añade
+      _isLoading = true;
       _errorMessage = '';
     });
     try {
-      await _apiService.addDevice(deviceId); // Llama a la API real
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Dispositivo $deviceId añadido correctamente.')),
-      );
-      await _fetchUserDevices(); // Recargar la lista de dispositivos después de añadir
-    } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al añadir dispositivo: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      if (e.toString().contains('Authentication failed')) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+      await _apiService.addDevice(deviceId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Dispositivo $deviceId añadido correctamente.'),
+          ),
         );
       }
+      await _fetchUserDevices();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al añadir dispositivo: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        if (e.toString().contains('Authentication failed')) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+          );
+        }
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  // Función para mostrar el diálogo de confirmación antes de eliminar
+  // FUNCIÓN PARA MOSTRAR EL DIÁLOGO DE CONFIRMACIÓN ANTES DE ELIMINAR
   Future<void> _removeDeviceConfirm(String deviceId) async {
+    // <-- Esta función debe estar aquí
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -160,9 +170,7 @@ class DeviceListScreenState extends State<DeviceListScreen> {
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-              ), // Botón rojo para eliminar
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: const Text('Eliminar'),
             ),
           ],
@@ -171,44 +179,129 @@ class DeviceListScreenState extends State<DeviceListScreen> {
     );
 
     if (confirm == true) {
-      await _removeDevice(deviceId); // Llama a la función de eliminación real
+      await _removeDevice(deviceId);
     }
   }
 
-  // Función para llamar al backend y eliminar el dispositivo
+  // FUNCIÓN PARA LLAMAR AL BACKEND Y ELIMINAR EL DISPOSITIVO
   Future<void> _removeDevice(String deviceId) async {
+    // <-- Esta función debe estar aquí
     setState(() {
-      _isLoading = true; // Mostrar indicador de carga
+      _isLoading = true;
       _errorMessage = '';
     });
     try {
-      await _apiService.removeDevice(deviceId); // Llama a la API real
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Dispositivo $deviceId eliminado correctamente.'),
-        ),
-      );
-      await _fetchUserDevices(); // Recargar la lista después de eliminar
+      await _apiService.removeDevice(deviceId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Dispositivo $deviceId eliminado correctamente.'),
+          ),
+        );
+      }
+      await _fetchUserDevices();
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al eliminar dispositivo: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        if (e.toString().contains('Authentication failed')) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+          );
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  // FUNCIÓN PARA ENVIAR COMANDO DE CAMBIO DE MODO
+  Future<void> _setCameraMode(String deviceId, String mode) async {
+    // Guardar el estado actual del dispositivo para posible revertir
+    final int deviceIndex = _devices.indexWhere((d) => d['id'] == deviceId);
+    if (deviceIndex == -1) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al eliminar dispositivo: ${e.toString()}'),
+        const SnackBar(
+          content: Text('Error: Dispositivo no encontrado en la lista.'),
           backgroundColor: Colors.red,
         ),
       );
+      return;
+    }
+
+    final Map<String, dynamic> oldDeviceState = Map.from(
+      _devices[deviceIndex],
+    ); // Copia del estado antiguo
+    final String oldMode = oldDeviceState['mode'] as String;
+
+    // 1. Actualización optimista de la UI
+    if (mounted) {
+      setState(() {
+        _devices[deviceIndex]['mode'] =
+            mode; // Actualiza el modo en la lista local
+        _isLoading =
+            false; // Asumimos que la UI no está "cargando" por el cambio de modo
+        _errorMessage = '';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        // Mensaje de que el comando fue enviado
+        SnackBar(
+          content: Text(
+            'Comando "$mode" enviado a $deviceId (actualizando UI).',
+          ),
+          backgroundColor: Colors.grey[700],
+        ),
+      );
+    }
+
+    String message = '';
+    Color color = Colors.green;
+
+    try {
+      // 2. Enviar el comando al backend
+      await _apiService.setCameraMode(deviceId, mode);
+      message = 'Comando "$mode" ejecutado en $deviceId.';
+      color = Colors.green;
+    } catch (e) {
+      // 3. Si hay un error, revertir la UI y mostrar mensaje de error
+      message = 'Error al enviar comando: ${e.toString()}';
+      color = Colors.red;
+      if (mounted) {
+        // Revertir solo si el widget sigue montado
+        setState(() {
+          _devices[deviceIndex]['mode'] = oldMode; // Revertir al modo anterior
+        });
+      }
       if (e.toString().contains('Authentication failed')) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-        );
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+          );
+        }
       }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        // Mostrar mensaje final de éxito/error de la operación remota
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: color),
+        );
+        // Opcional: _fetchUserDevices(); para reconciliar el estado con el servidor
+        // Lo quitamos para evitar flickering, ya que la actualización optimista es suficiente.
+        // Si el estado real es muy importante, un timer de refresco en la DeviceListScreen sería mejor.
+      }
     }
   }
 
@@ -262,21 +355,170 @@ class DeviceListScreenState extends State<DeviceListScreen> {
           : ListView.builder(
               itemCount: _devices.length,
               itemBuilder: (context, index) {
-                final deviceId = _devices[index];
+                final device = _devices[index]; // <-- Ahora 'device' es un Map
+                final deviceId =
+                    device['id'] as String; // Obtener el ID de la cámara
+                final currentMode =
+                    device['mode'] as String; // Obtener el modo actual
+                final isActive =
+                    device['is_active'] as bool; // Obtener si está activa
+
                 return Card(
                   margin: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 8,
                   ),
-                  child: ListTile(
-                    leading: const Icon(Icons.camera_alt),
-                    title: Text('Dispositivo ID: $deviceId'),
-                    subtitle: const Text('Estado: Conectado (simulado)'),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _removeDeviceConfirm(
-                        deviceId,
-                      ), // Llama a la confirmación
+                  elevation: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: Icon(
+                            isActive
+                                ? Icons.camera_alt
+                                : Icons
+                                      .highlight_off, // <-- Ícono para "offline"
+                            color: isActive
+                                ? Colors.green
+                                : Colors.grey, // Indicador de activo/inactivo
+                          ),
+                          title: Text('Dispositivo ID: $deviceId'),
+                          // Subtítulo con el modo actual
+                          subtitle: Text(
+                            'Modo: $currentMode ${isActive ? '(Online)' : '(Offline)'}',
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.videocam,
+                                  color: Colors.blue,
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          LiveStreamScreen(cameraId: deviceId),
+                                    ),
+                                  );
+                                },
+                                tooltip: 'Ver Stream',
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () => _removeDeviceConfirm(deviceId),
+                                tooltip: 'Eliminar Dispositivo',
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Divider(),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            // ---------- BOTÓN STREAM ----------
+                            Expanded(
+                              child: SizedBox(
+                                height: currentMode == "STREAMING_MODE"
+                                    ? 60
+                                    : 48,
+                                child: ElevatedButton.icon(
+                                  onPressed: () => _setCameraMode(
+                                    deviceId,
+                                    "STREAMING_MODE",
+                                  ), // <-- aquí el mismo texto
+                                  icon: const Icon(Icons.videocam_outlined),
+                                  label: const Text('Modo Stream'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        currentMode == "STREAMING_MODE"
+                                        ? const Color.fromARGB(
+                                            255,
+                                            0,
+                                            174,
+                                            255,
+                                          ) // seleccionado
+                                        : const Color.fromARGB(
+                                            255,
+                                            48,
+                                            63,
+                                            159,
+                                          ), // no seleccionado
+                                    foregroundColor: Colors.white,
+                                    padding: currentMode == "STREAMING_MODE"
+                                        ? const EdgeInsets.symmetric(
+                                            vertical: 20,
+                                          )
+                                        : const EdgeInsets.symmetric(
+                                            vertical: 12,
+                                          ),
+                                    textStyle: TextStyle(
+                                      fontSize: currentMode == "STREAMING_MODE"
+                                          ? 18
+                                          : 16,
+                                      fontWeight:
+                                          currentMode == "STREAMING_MODE"
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                    elevation: currentMode == "STREAMING_MODE"
+                                        ? 8
+                                        : 2,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 10),
+
+                            // ---------- BOTÓN CAPTURA ----------
+                            Expanded(
+                              child: SizedBox(
+                                height: currentMode == "CAPTURE_MODE" ? 60 : 48,
+                                child: ElevatedButton.icon(
+                                  onPressed: () => _setCameraMode(
+                                    deviceId,
+                                    "CAPTURE_MODE",
+                                  ), // <-- igual que arriba
+                                  icon: const Icon(Icons.camera_alt_outlined),
+                                  label: const Text('Modo Captura'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        currentMode == "CAPTURE_MODE"
+                                        ? const Color.fromARGB(255, 0, 174, 255)
+                                        : Colors.indigo[700],
+                                    foregroundColor: Colors.white,
+                                    padding: currentMode == "CAPTURE_MODE"
+                                        ? const EdgeInsets.symmetric(
+                                            vertical: 20,
+                                          )
+                                        : const EdgeInsets.symmetric(
+                                            vertical: 12,
+                                          ),
+                                    textStyle: TextStyle(
+                                      fontSize: currentMode == "CAPTURE_MODE"
+                                          ? 18
+                                          : 16,
+                                      fontWeight: currentMode == "CAPTURE_MODE"
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                    elevation: currentMode == "CAPTURE_MODE"
+                                        ? 8
+                                        : 2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 );
