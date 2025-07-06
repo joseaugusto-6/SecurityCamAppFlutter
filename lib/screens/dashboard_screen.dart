@@ -6,6 +6,7 @@ import 'package:my_first_app/services/api_service.dart';
 import 'package:my_first_app/models/person_event.dart';
 import 'package:my_first_app/screens/device_list_screen.dart';
 import 'package:my_first_app/screens/live_stream_screen.dart';
+import 'dart:async'; // <-- ¡Añade esta importación para Timer!
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -19,6 +20,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _alarmsToday = 0;
   List<PersonEvent> _latestEvents = [];
   bool _isLoadingDashboard = true;
+  Timer? _timer; // <-- Variable para el Timer
 
   final AuthService _authService = AuthService();
   final ApiService _apiService = ApiService();
@@ -27,6 +29,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _fetchDashboardData();
+    // Iniciar un timer para recargar el dashboard cada 30 segundos
+    _timer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      _fetchDashboardData();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // Cancelar el timer cuando el widget se destruye
+    super.dispose();
   }
 
   Future<void> _fetchDashboardData() async {
@@ -35,14 +47,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
     try {
       final data = await _apiService.getDashboardData();
-      if (!mounted) return; // <-- Añadido
+      if (!mounted) return;
       setState(() {
         _latestEvents = data['latest_events'];
         _totalEntriesToday = data['total_entries_today'];
         _alarmsToday = data['alarms_today'];
       });
     } catch (e) {
-      if (!mounted) return; // <-- Añadido
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error al cargar datos del dashboard: ${e.toString()}'),
@@ -56,7 +68,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       }
     } finally {
-      if (!mounted) return; // <-- Añadido
+      if (!mounted) return;
       setState(() {
         _isLoadingDashboard = false;
       });
@@ -86,7 +98,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (confirm == true) {
       await _authService.deleteJwtToken();
-      if (!mounted) return; // <-- Añadido
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -102,68 +114,80 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard de Seguridad'),
-        actions: [
-          // Botón de Video en Vivo
-          IconButton(
-            icon: const Icon(Icons.videocam), // Icono de cámara de video
-            onPressed: () {
-              // TODO: Aquí podrías obtener el camera_id de forma dinámica
-              // Por ahora, pasamos un ID de cámara por defecto para la prueba.
-              // Lo ideal es navegar desde DeviceListScreen pasando el ID de la cámara seleccionada.
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      const LiveStreamScreen(cameraId: 'camera001'),
-                ), // <-- ¡CAMBIO CLAVE AQUÍ!
-              );
-            },
-            tooltip: 'Video en Vivo',
-          ),
-          // Botón de Mis Cámaras/Dispositivos
-          IconButton(
-            icon: const Icon(Icons.devices),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const DeviceListScreen(),
-                ),
-              );
-            },
-            tooltip: 'Mis Cámaras/Dispositivos',
-          ),
-          // Botón de Historial de Eventos
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const EventHistoryScreen(),
-                ),
-              );
-            },
-            tooltip: 'Historial de Eventos',
-          ),
-          // Botón de Cerrar Sesión
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
-            tooltip: 'Cerrar Sesión',
-          ),
-        ],
+        // Eliminamos los actions de aquí, los botones estarán en el body
+        // actions: [ ... ]
       ),
       body: _isLoadingDashboard
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(
-                16.0,
-              ), // <-- Added padding here directly
+              padding: const EdgeInsets.all(16.0),
               child: Column(
-                // <-- Changed to Column
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Botones de Navegación Grandes - NUEVOS EN EL BODY
+                  GridView.count(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16.0,
+                    mainAxisSpacing: 16.0,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      _buildDashboardButton(
+                        context,
+                        title: 'Video en Vivo',
+                        icon: Icons.videocam,
+                        color: Colors.blue,
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const LiveStreamScreen(cameraId: 'camera001'),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildDashboardButton(
+                        context,
+                        title: 'Mis Cámaras',
+                        icon: Icons.devices,
+                        color: Colors.green,
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const DeviceListScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildDashboardButton(
+                        context,
+                        title: 'Historial',
+                        icon: Icons.history,
+                        color: Colors.orange,
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const EventHistoryScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildDashboardButton(
+                        context,
+                        title: 'Cerrar Sesión',
+                        icon: Icons.logout,
+                        color: Colors.red,
+                        onPressed: _logout,
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Sección de Estadísticas Rápidas (Resumen Diario)
                   const Text(
                     'Resumen Diario',
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -233,6 +257,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(height: 30),
 
+                  // Sección de Actividad Reciente
                   const Text(
                     'Actividad Reciente',
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -303,11 +328,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           color: iconColor.withAlpha(
                                             (0.2 * 255).round(),
                                           ),
-                                        ), // Corrected deprecated use
+                                        ),
                                         radius: 25,
                                         backgroundColor: iconColor.withOpacity(
                                           0.2,
-                                        ), // Keeping this for now if the other is too complex
+                                        ),
                                       ),
                                 title: Text(
                                   titleText,
@@ -334,6 +359,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  // Función auxiliar para construir los botones grandes del dashboard
+  Widget _buildDashboardButton(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      color: color,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(15),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 40, color: Colors.white),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
