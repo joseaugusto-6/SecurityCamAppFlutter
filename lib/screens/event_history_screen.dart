@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:my_first_app/models/person_event.dart';
-import 'package:my_first_app/widgets/event_card.dart';
+import 'package:my_first_app/widgets/event_card.dart'; // Asegúrate de que EventCard esté importado
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:my_first_app/screens/login_screen.dart'; // Para BASE_URL
+import 'package:my_first_app/screens/login_screen.dart';
+import 'package:my_first_app/screens/event_image_viewer_screen.dart'; // Importa el visor de imágenes
+import 'package:my_first_app/services/api_service.dart'; // Para BASE_URL
+
+// Aquí puedes mantener BASE_URL si no quieres depender de ApiService para esto
+// const String BASE_URL = 'https://tesisdeteccion.ddns.net/api';
 
 class EventHistoryScreen extends StatefulWidget {
   const EventHistoryScreen({super.key});
@@ -17,6 +22,7 @@ class _EventHistoryScreenState extends State<EventHistoryScreen> {
   List<PersonEvent> _events = [];
   bool _isLoading = true;
   final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
+  final ApiService _apiService = ApiService(); // Para acceder a BASE_URL
 
   @override
   void initState() {
@@ -33,7 +39,7 @@ class _EventHistoryScreenState extends State<EventHistoryScreen> {
       final String? token = await _secureStorage.read(key: 'jwt_token');
 
       if (token == null) {
-        // Si no hay token, el usuario no está autenticado. Redirigir al login.
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -45,13 +51,14 @@ class _EventHistoryScreenState extends State<EventHistoryScreen> {
         return;
       }
 
+      // Usa ApiService.BASE_URL para mayor consistencia
       final response = await http.get(
         Uri.parse(
-          '$BASE_URL/events/history',
-        ), // Tu endpoint de historial en Flask
+          '${ApiService.BASE_URL}/events/history',
+        ), // <-- CAMBIO CLAVE AQUÍ: Usar ApiService.BASE_URL
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token', // Enviar el token JWT
+          'Authorization': 'Bearer $token',
         },
       );
 
@@ -59,6 +66,7 @@ class _EventHistoryScreenState extends State<EventHistoryScreen> {
         final Map<String, dynamic> responseData = json.decode(response.body);
         final List<dynamic> eventsJson = responseData['events'];
 
+        if (!mounted) return;
         setState(() {
           _events = eventsJson
               .map((json) => PersonEvent.fromJson(json))
@@ -66,10 +74,8 @@ class _EventHistoryScreenState extends State<EventHistoryScreen> {
         });
         _showSnackBar('Historial de eventos actualizado.', Colors.green);
       } else if (response.statusCode == 401) {
-        // Token inválido o expirado
-        await _secureStorage.delete(
-          key: 'jwt_token',
-        ); // Limpiar el token inválido
+        await _secureStorage.delete(key: 'jwt_token');
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -79,7 +85,6 @@ class _EventHistoryScreenState extends State<EventHistoryScreen> {
           Colors.red,
         );
       } else {
-        // Otro error del servidor
         final Map<String, dynamic> errorData = json.decode(response.body);
         _showSnackBar(
           errorData['msg'] ?? 'Error al cargar el historial.',
@@ -87,8 +92,9 @@ class _EventHistoryScreenState extends State<EventHistoryScreen> {
         );
       }
     } catch (e) {
-      _showSnackBar('Error de conexión: $e', Colors.red);
+      _showSnackBar('Error de conexión: ${e.toString()}', Colors.red);
     } finally {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -126,7 +132,31 @@ class _EventHistoryScreenState extends State<EventHistoryScreen> {
           : ListView.builder(
               itemCount: _events.length,
               itemBuilder: (context, index) {
-                return EventCard(event: _events[index]);
+                final event = _events[index];
+                return EventCard(
+                  // Pasa la función onTap al EventCard
+                  event: event,
+                  onTap: () {
+                    // <-- ¡onTap que abre el visor de imágenes!
+                    if (event.imageUrl.isNotEmpty) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              EventImageViewerScreen(imageUrl: event.imageUrl),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'No hay imagen disponible para este evento.',
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                );
               },
             ),
     );
