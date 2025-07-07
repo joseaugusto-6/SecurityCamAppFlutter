@@ -33,12 +33,21 @@ class EventCard extends StatelessWidget {
         iconColor = Colors.green;
         break;
       case 'unknown_person':
-        titleText = 'Alerta: Persona Desconocida';
-        subtitleText =
-            'Detalles: ${event.eventDetails.isNotEmpty ? event.eventDetails : 'Se detectó una persona no identificada.'}'; // <-- Asignada aquí
-        iconData = Icons.warning_amber;
+      case 'unknown_person_repeat':
+      case 'unknown_person_repeated_alarm':
+      case 'unknown_group':
+        // Usamos un if para personalizar el título y el ícono
+        if (event.eventType == 'unknown_group') {
+          titleText = 'Alerta: Varios Desconocidos';
+          iconData = Icons.groups; // Un ícono más apropiado para grupos
+        } else {
+          titleText = 'Alerta: Persona Desconocida';
+          iconData = Icons.warning_amber;
+        }
+        subtitleText = 'Detalles: ${event.eventDetails}';
         iconColor = Colors.red;
         break;
+
       case 'alarm':
         titleText = '¡Alarma Activada!';
         subtitleText =

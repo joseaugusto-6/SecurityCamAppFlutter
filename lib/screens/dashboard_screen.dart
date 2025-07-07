@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:my_first_app/screens/event_history_screen.dart';
 import 'package:my_first_app/screens/event_image_viewer_screen.dart';
 import 'package:my_first_app/screens/face_registration_screen.dart';
+import 'package:my_first_app/screens/notification_settings_screen.dart';
 import 'package:my_first_app/services/auth_service.dart';
 import 'package:my_first_app/screens/login_screen.dart';
 import 'package:my_first_app/services/api_service.dart';
@@ -41,6 +42,138 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  void _showHelpDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('¿Cómo funciona esta App?'),
+
+          // Dentro de AlertDialog, reemplaza la propiedad 'content' con esta:
+          content: SingleChildScrollView(
+            child: ListBody(
+              // ListBody es ideal para listas dentro de diálogos
+              children: <Widget>[
+                const Text(
+                  'Bienvenido a tu Sistema de Seguridad Inteligente.',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 15),
+
+                // Usamos RichText para combinar texto normal y en negrita
+                RichText(
+                  text: TextSpan(
+                    // Estilo por defecto para este párrafo (toma el del tema actual)
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    children: const <TextSpan>[
+                      TextSpan(text: '• '),
+                      TextSpan(
+                        text: 'Última Alerta Crítica:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      TextSpan(
+                        text:
+                            ' Muestra la alerta más reciente que requiere tu atención.',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                RichText(
+                  text: TextSpan(
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    children: const <TextSpan>[
+                      TextSpan(text: '• '),
+                      TextSpan(
+                        text: 'Actividad Reciente:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      TextSpan(
+                        text:
+                            ' Aquí podrás ver los últimos eventos detectados por tus cámaras.',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                RichText(
+                  text: TextSpan(
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    children: const <TextSpan>[
+                      TextSpan(text: '• '),
+                      TextSpan(
+                        text: 'Video en Vivo:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      TextSpan(
+                        text:
+                            ' Si una cámara está en modo Stream, este botón te permitirá ver la transmisión.',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                RichText(
+                  text: TextSpan(
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    children: const <TextSpan>[
+                      TextSpan(text: '• '),
+                      TextSpan(
+                        text: 'Mis Cámaras:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      TextSpan(
+                        text:
+                            ' Visualiza y cambia el modo de funcionamiento de cada una de tus cámaras.',
+                      ),
+                    ],
+                  ),
+                ),
+
+                RichText(
+                  text: TextSpan(
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    children: const <TextSpan>[
+                      TextSpan(text: '• '),
+                      TextSpan(
+                        text: 'Registrar Rostro:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      TextSpan(
+                        text:
+                            'Registra una persona que quieras que tu sistema reconozca como "Conocida".',
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+                const Text(
+                  'Para más detalles, consulta la documentación completa.',
+                  style: TextStyle(fontStyle: FontStyle.italic),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text(
+                'Entendido',
+                style: TextStyle(color: Color.fromARGB(255, 0, 9, 176)),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop(); // Cierra el diálogo
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _startAutoRefresh() {
@@ -339,11 +472,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
     return Scaffold(
       appBar: AppBar(
+        leading: Padding(
+          padding: const EdgeInsets.fromLTRB(7, 0, 0, 0),
+          child: Image.asset(
+            'assets/images/logo.png', // <-- PON EL NOMBRE EXACTO DE TU ARCHIVO
+          ),
+        ),
         title: const Text(
           'AI Security Cam',
           style: TextStyle(color: Colors.white, fontSize: 30),
         ),
+        centerTitle: true,
         backgroundColor: Color.fromARGB(255, 19, 195, 171),
+        foregroundColor: Colors.white,
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Ajustes',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationSettingsScreen(),
+                ),
+              );
+            },
+          ),
+          // <-- Añadimos la propiedad actions (si no existía)
+          IconButton(
+            icon: const Icon(Icons.info_outline), // El ícono de información
+            onPressed: () {
+              // Aquí irá la lógica para mostrar la ayuda
+              _showHelpDialog(context);
+            },
+          ),
+        ],
       ),
       body: _isLoadingDashboardInitial
           ? const Center(child: CircularProgressIndicator())
@@ -588,9 +751,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           },
                         ),
 
-                  const SizedBox(
-                    height: 40,
-                  ), // Un buen espacio para separar de la lista de arriba
+                  const SizedBox(height: 40),
 
                   OutlinedButton.icon(
                     icon: const Icon(Icons.logout),
@@ -612,6 +773,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),

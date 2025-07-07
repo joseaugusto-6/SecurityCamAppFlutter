@@ -18,6 +18,50 @@ class ApiService {
     : _secureStorage = secureStorage ?? const FlutterSecureStorage(),
       _authService = authService ?? AuthService();
 
+  Future<Map<String, dynamic>> getUserSettings() async {
+    try {
+      final String? token = await _authService.getJwtToken();
+      if (token == null) throw Exception('User not authenticated.');
+
+      final response = await http.get(
+        Uri.parse('${ApiService.BASE_URL}/user/settings'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to load user settings.');
+      }
+    } catch (e) {
+      debugPrint('DEBUG_API: Error fetching user settings: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateUserSettings(String preference) async {
+    try {
+      final String? token = await _authService.getJwtToken();
+      if (token == null) throw Exception('User not authenticated.');
+
+      final response = await http.post(
+        Uri.parse('${ApiService.BASE_URL}/user/settings'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({'notification_preference': preference}),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to save user settings.');
+      }
+    } catch (e) {
+      debugPrint('DEBUG_API: Error updating user settings: $e');
+      rethrow;
+    }
+  }
+
   // Método para obtener los datos del dashboard (últimos eventos y estadísticas)
   Future<Map<String, dynamic>> getDashboardData() async {
     try {
