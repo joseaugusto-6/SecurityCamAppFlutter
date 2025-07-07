@@ -53,7 +53,6 @@ class DeviceListScreenState extends State<DeviceListScreen> {
 
   // FUNCIÓN PARA MOSTRAR EL DIÁLOGO DE AÑADIR DISPOSITIVO
   Future<void> _showAddDeviceDialog() async {
-    // <-- Esta función debe estar aquí
     String? newDeviceId;
     return showDialog<void>(
       context: context,
@@ -110,7 +109,6 @@ class DeviceListScreenState extends State<DeviceListScreen> {
 
   // FUNCIÓN PARA LLAMAR AL BACKEND Y AÑADIR EL DISPOSITIVO
   Future<void> _addDevice(String deviceId) async {
-    // <-- Esta función debe estar aquí
     setState(() {
       _isLoading = true;
       _errorMessage = '';
@@ -154,7 +152,6 @@ class DeviceListScreenState extends State<DeviceListScreen> {
 
   // FUNCIÓN PARA MOSTRAR EL DIÁLOGO DE CONFIRMACIÓN ANTES DE ELIMINAR
   Future<void> _removeDeviceConfirm(String deviceId) async {
-    // <-- Esta función debe estar aquí
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -185,7 +182,6 @@ class DeviceListScreenState extends State<DeviceListScreen> {
 
   // FUNCIÓN PARA LLAMAR AL BACKEND Y ELIMINAR EL DISPOSITIVO
   Future<void> _removeDevice(String deviceId) async {
-    // <-- Esta función debe estar aquí
     setState(() {
       _isLoading = true;
       _errorMessage = '';
@@ -241,22 +237,15 @@ class DeviceListScreenState extends State<DeviceListScreen> {
       return;
     }
 
-    final Map<String, dynamic> oldDeviceState = Map.from(
-      _devices[deviceIndex],
-    ); // Copia del estado antiguo
+    final Map<String, dynamic> oldDeviceState = Map.from(_devices[deviceIndex]);
     final String oldMode = oldDeviceState['mode'] as String;
 
-    // 1. Actualización optimista de la UI
     if (mounted) {
       setState(() {
-        _devices[deviceIndex]['mode'] =
-            mode; // Actualiza el modo en la lista local
-        _isLoading =
-            false; // Asumimos que la UI no está "cargando" por el cambio de modo
-        _errorMessage = '';
+        _devices[deviceIndex] = Map<String, dynamic>.from(oldDeviceState)
+          ..['mode'] = mode;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        // Mensaje de que el comando fue enviado
         SnackBar(
           content: Text(
             'Comando "$mode" enviado a $deviceId (actualizando UI).',
@@ -270,18 +259,75 @@ class DeviceListScreenState extends State<DeviceListScreen> {
     Color color = Colors.green;
 
     try {
-      // 2. Enviar el comando al backend
       await _apiService.setCameraMode(deviceId, mode);
       message = 'Comando "$mode" ejecutado en $deviceId.';
       color = Colors.green;
     } catch (e) {
-      // 3. Si hay un error, revertir la UI y mostrar mensaje de error
       message = 'Error al enviar comando: ${e.toString()}';
       color = Colors.red;
+      if (e.toString().contains('Authentication failed')) {
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+          );
+        }
+      }
+    } finally {
       if (mounted) {
-        // Revertir solo si el widget sigue montado
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: color),
+        );
+      }
+    }
+  }
+
+  // NUEVA FUNCIÓN: Para enviar comando de encendido/apagado
+  Future<void> _toggleCameraPower(String deviceId, bool isOn) async {
+    final String powerState = isOn ? "ON" : "OFF";
+    final int deviceIndex = _devices.indexWhere((d) => d['id'] == deviceId);
+    if (deviceIndex == -1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: Dispositivo no encontrado en la lista.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final Map<String, dynamic> oldDeviceState = Map.from(_devices[deviceIndex]);
+    final bool oldPowerState = oldDeviceState['is_on'] as bool;
+
+    // Actualización optimista de la UI
+    if (mounted) {
+      setState(() {
+        _devices[deviceIndex] = Map<String, dynamic>.from(_devices[deviceIndex])
+          ..['is_on'] = isOn;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Comando "Power $powerState" enviado a $deviceId (actualizando UI).',
+          ),
+          backgroundColor: Colors.grey[700],
+        ),
+      );
+    }
+
+    String message = '';
+    Color color = Colors.green;
+
+    try {
+      await _apiService.setCameraPower(deviceId, powerState);
+      message = 'Comando "Power $powerState" ejecutado en $deviceId.';
+    } catch (e) {
+      message = 'Error al enviar comando: ${e.toString()}';
+      color = Colors.red;
+      // Revertir UI si hay error
+      if (mounted) {
         setState(() {
-          _devices[deviceIndex]['mode'] = oldMode; // Revertir al modo anterior
+          _devices[deviceIndex] = Map<String, dynamic>.from(oldDeviceState);
         });
       }
       if (e.toString().contains('Authentication failed')) {
@@ -294,13 +340,9 @@ class DeviceListScreenState extends State<DeviceListScreen> {
       }
     } finally {
       if (mounted) {
-        // Mostrar mensaje final de éxito/error de la operación remota
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message), backgroundColor: color),
         );
-        // Opcional: _fetchUserDevices(); para reconciliar el estado con el servidor
-        // Lo quitamos para evitar flickering, ya que la actualización optimista es suficiente.
-        // Si el estado real es muy importante, un timer de refresco en la DeviceListScreen sería mejor.
       }
     }
   }
@@ -355,18 +397,17 @@ class DeviceListScreenState extends State<DeviceListScreen> {
           : ListView.builder(
               itemCount: _devices.length,
               itemBuilder: (context, index) {
-                final device = _devices[index]; // <-- Ahora 'device' es un Map
-                final deviceId =
-                    device['id'] as String; // Obtener el ID de la cámara
-                final currentMode =
-                    device['mode'] as String; // Obtener el modo actual
-                final isActive =
-                    device['is_active'] as bool; // Obtener si está activa
+                final device = _devices[index];
+                final deviceId = device['id'] as String;
+                final currentMode = device['mode'] as String;
+                final isActive = device['is_active'] as bool;
+                final isOn = device['is_on'] as bool;
 
                 return Card(
+                  key: ValueKey(deviceId),
                   margin: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 8,
+                    vertical: 16,
                   ),
                   elevation: 2,
                   child: Padding(
@@ -375,54 +416,24 @@ class DeviceListScreenState extends State<DeviceListScreen> {
                       children: [
                         ListTile(
                           leading: Icon(
-                            isActive
-                                ? Icons.camera_alt
-                                : Icons
-                                      .highlight_off, // <-- Ícono para "offline"
-                            color: isActive
-                                ? Colors.green
-                                : Colors.grey, // Indicador de activo/inactivo
+                            isActive ? Icons.camera_alt : Icons.highlight_off,
+                            color: isActive ? Colors.green : Colors.grey,
                           ),
-                          title: Text('Dispositivo ID: $deviceId'),
-                          // Subtítulo con el modo actual
+                          title: Text('ID: $deviceId'),
                           subtitle: Text(
                             'Modo: $currentMode ${isActive ? '(Online)' : '(Offline)'}',
                           ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.videocam,
-                                  color: Colors.blue,
-                                ),
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          LiveStreamScreen(cameraId: deviceId),
-                                    ),
-                                  );
-                                },
-                                tooltip: 'Ver Stream',
-                              ),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.delete,
-                                  color: Colors.red,
-                                ),
-                                onPressed: () => _removeDeviceConfirm(deviceId),
-                                tooltip: 'Eliminar Dispositivo',
-                              ),
-                            ],
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _removeDeviceConfirm(deviceId),
+                            tooltip: 'Eliminar Dispositivo',
                           ),
                         ),
                         const Divider(),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            // ---------- BOTÓN STREAM ----------
+                            // ----------- STREAMING -----------
                             Expanded(
                               child: SizedBox(
                                 height: currentMode == "STREAMING_MODE"
@@ -432,7 +443,7 @@ class DeviceListScreenState extends State<DeviceListScreen> {
                                   onPressed: () => _setCameraMode(
                                     deviceId,
                                     "STREAMING_MODE",
-                                  ), // <-- aquí el mismo texto
+                                  ),
                                   icon: const Icon(Icons.videocam_outlined),
                                   label: const Text('Modo Stream'),
                                   style: ElevatedButton.styleFrom(
@@ -477,22 +488,25 @@ class DeviceListScreenState extends State<DeviceListScreen> {
 
                             const SizedBox(width: 10),
 
-                            // ---------- BOTÓN CAPTURA ----------
+                            // ------------- CAPTURA -------------
                             Expanded(
                               child: SizedBox(
                                 height: currentMode == "CAPTURE_MODE" ? 60 : 48,
                                 child: ElevatedButton.icon(
-                                  onPressed: () => _setCameraMode(
-                                    deviceId,
-                                    "CAPTURE_MODE",
-                                  ), // <-- igual que arriba
+                                  onPressed: () =>
+                                      _setCameraMode(deviceId, "CAPTURE_MODE"),
                                   icon: const Icon(Icons.camera_alt_outlined),
                                   label: const Text('Modo Captura'),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor:
                                         currentMode == "CAPTURE_MODE"
-                                        ? const Color.fromARGB(255, 0, 174, 255)
-                                        : Colors.indigo[700],
+                                        ? const Color.fromARGB(
+                                            255,
+                                            0,
+                                            174,
+                                            255,
+                                          ) // seleccionado
+                                        : Colors.indigo[700], // no seleccionado
                                     foregroundColor: Colors.white,
                                     padding: currentMode == "CAPTURE_MODE"
                                         ? const EdgeInsets.symmetric(
@@ -515,6 +529,23 @@ class DeviceListScreenState extends State<DeviceListScreen> {
                                   ),
                                 ),
                               ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            const Text('On/Off'),
+                            const SizedBox(width: 10),
+                            Switch.adaptive(
+                              value: isOn,
+                              onChanged: isActive
+                                  ? (bool newValue) {
+                                      _toggleCameraPower(deviceId, newValue);
+                                    }
+                                  : null,
+                              activeColor: Colors.teal,
                             ),
                           ],
                         ),

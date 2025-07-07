@@ -14,7 +14,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   print('DEBUG: Handling a background message: ${message.messageId}');
   // Aquí puedes añadir lógica para procesar el mensaje en segundo plano,
-  // como guardar en una base de datos local o disparar una notificación local.
+  // como guardar en una base de datos local o disparar una notificación
 }
 
 // GlobalKey para acceder al contexto del Navigator y ScaffoldMessenger desde cualquier parte.

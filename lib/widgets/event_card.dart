@@ -16,7 +16,7 @@ class EventCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final String formattedDate = DateFormat(
       'dd/MM/yyyy HH:mm:ss',
-    ).format(event.timestamp);
+    ).format(event.timestamp.toLocal());
 
     String titleText;
     String subtitleText; // <-- ¡Declarada aquí!

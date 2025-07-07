@@ -1,44 +1,43 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+// Asegúrate de que esta importación esté aquí
+import 'package:flutter/foundation.dart';
 
 class PersonEvent {
   final String personName;
   final DateTime timestamp;
-  final String eventType; // 'known_person', 'unknown_person', 'alarm'
+  final String eventType;
   final String imageUrl;
-  final String eventDetails; // Detalles adicionales del evento
-  final String deviceId; // ID del dispositivo que generó el evento
+  final String eventDetails;
+  final String deviceId;
 
   PersonEvent({
     required this.personName,
     required this.timestamp,
     required this.eventType,
     required this.imageUrl,
-    this.eventDetails = '', // Valor por defecto vacío
+    this.eventDetails = '',
     required this.deviceId,
   });
 
   factory PersonEvent.fromJson(Map<String, dynamic> json) {
-    // Manejar el timestamp que puede venir como String (de la API) o Timestamp (de Firestore)
     DateTime parsedTimestamp;
-    if (json['timestamp'] is String) {
+    try {
+      // Intentar parsear como ISO 8601 y EXPLICITAMENTE marcarlo como UTC
+      parsedTimestamp = DateTime.parse(json['timestamp']).toUtc();
+    } catch (e) {
+      // Fallback si el parseo falla (aunque no debería si Flask envía ISO)
+      // Intenta parsear sin asumir UTC y luego convertir (menos ideal)
       parsedTimestamp = DateTime.parse(json['timestamp']);
-    } else if (json['timestamp'] is Timestamp) {
-      parsedTimestamp = (json['timestamp'] as Timestamp).toDate();
-    } else {
-      // Fallback o error si el tipo no es el esperado
-      parsedTimestamp = DateTime.now(); // O manejar el error de otra forma
+      debugPrint(
+        'Error al parsear timestamp como UTC. Intentando sin toUtc(): ${json['timestamp']} - Error: $e',
+      );
     }
 
     return PersonEvent(
       personName: json['person_name'] as String? ?? 'Desconocido',
       timestamp: parsedTimestamp,
-      eventType:
-          json['event_type'] as String? ??
-          'unknown', // Asegura que este campo exista
+      eventType: json['event_type'] as String? ?? 'unknown',
       imageUrl: json['image_url'] as String? ?? '',
-      eventDetails:
-          json['event_details'] as String? ??
-          '', // Asegura que este campo exista
+      eventDetails: json['event_details'] as String? ?? '',
       deviceId: json['device_id'] as String? ?? 'unknown',
     );
   }
@@ -46,7 +45,8 @@ class PersonEvent {
   Map<String, dynamic> toJson() {
     return {
       'person_name': personName,
-      'timestamp': timestamp.toIso8601String(),
+      'timestamp': timestamp
+          .toIso8601String(), // Asegurar que siempre se envíe como ISO 8601
       'event_type': eventType,
       'image_url': imageUrl,
       'event_details': eventDetails,
