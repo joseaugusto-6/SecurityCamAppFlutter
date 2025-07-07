@@ -11,7 +11,8 @@ class EventImageViewerScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Imagen del Evento'),
-        backgroundColor: Theme.of(context).primaryColor,
+        backgroundColor: Color.fromARGB(255, 19, 195, 171),
+        foregroundColor: Colors.white,
       ),
       body: Container(
         // El fondo negro es común para visores de imágenes

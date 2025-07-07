@@ -9,7 +9,8 @@ import 'package:my_first_app/screens/event_image_viewer_screen.dart';
 import 'package:my_first_app/services/api_service.dart'; // Asegúrate de que ApiService esté importado
 
 class EventHistoryScreen extends StatefulWidget {
-  const EventHistoryScreen({super.key});
+  final String? highlightEventId;
+  const EventHistoryScreen({super.key, this.highlightEventId});
 
   @override
   State<EventHistoryScreen> createState() => _EventHistoryScreenState();
@@ -67,7 +68,7 @@ class _EventHistoryScreenState extends State<EventHistoryScreen> {
               .map((json) => PersonEvent.fromJson(json))
               .toList();
         });
-        _showSnackBar('Historial de eventos actualizado.', Colors.green);
+        _showSnackBar('Historial de detecciones actualizado.', Colors.green);
       } else if (response.statusCode == 401) {
         await _secureStorage.delete(key: 'jwt_token');
         if (!mounted) return;
@@ -176,7 +177,9 @@ class _EventHistoryScreenState extends State<EventHistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Historial de Eventos'),
+        title: const Text('Historial'),
+        backgroundColor: Color.fromARGB(255, 11, 146, 173),
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_sweep_outlined),
@@ -202,6 +205,7 @@ class _EventHistoryScreenState extends State<EventHistoryScreen> {
                 final event = _events[index];
                 return EventCard(
                   event: event,
+                  isHighlighted: event.id == widget.highlightEventId,
                   onTap: () {
                     if (event.imageUrl.isNotEmpty) {
                       Navigator.push(

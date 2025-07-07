@@ -4,12 +4,14 @@ import 'package:my_first_app/models/person_event.dart';
 
 class EventCard extends StatelessWidget {
   final PersonEvent event;
-  final VoidCallback? onTap; // Nueva propiedad para la función de tap
+  final VoidCallback? onTap;
+  final bool isHighlighted; // Nueva propiedad para la función de tap
 
   const EventCard({
     super.key,
     required this.event,
     this.onTap,
+    this.isHighlighted = false,
   }); // Constructor modificado
 
   @override
@@ -56,7 +58,12 @@ class EventCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
       elevation: 4.0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10.0),
+        side: isHighlighted
+            ? const BorderSide(color: Colors.blueAccent, width: 2.5)
+            : BorderSide.none,
+      ),
       child: InkWell(
         // Hace la tarjeta clickeable
         onTap: onTap, // Llama a la función onTap del padre

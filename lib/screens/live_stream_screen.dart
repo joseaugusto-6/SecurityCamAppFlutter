@@ -101,8 +101,8 @@ class _LiveStreamScreenState extends State<LiveStreamScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Video en Vivo (Web)'),
-        backgroundColor: Theme.of(context).primaryColor,
+        title: const Text('Redireccionando...'),
+        backgroundColor: const Color.fromARGB(255, 28, 206, 206),
         actions: [
           IconButton(
             icon: const Icon(Icons.open_in_browser),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:my_first_app/services/api_service.dart';
 import 'package:my_first_app/screens/login_screen.dart';
@@ -16,23 +18,51 @@ class DeviceListScreenState extends State<DeviceListScreen> {
   String _errorMessage = '';
   final ApiService _apiService = ApiService();
 
+  // --- NUEVO: Timer para el auto-refresco ---
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
-    _fetchUserDevices();
+    // Hacemos la primera carga inmediatamente
+    _fetchUserDevices(isInitialLoad: true);
+    // Iniciamos el refresco automático
+    _startAutoRefresh();
   }
 
-  Future<void> _fetchUserDevices() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
+  // --- NUEVO: Función para iniciar el Timer ---
+  void _startAutoRefresh() {
+    // Cada 10 segundos, llamará a _fetchUserDevices en segundo plano
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      _fetchUserDevices(); // No es carga inicial, será silencioso
     });
+  }
+
+  // --- IMPORTANTE: Detener el Timer al salir de la pantalla ---
+  @override
+  void dispose() {
+    _timer?.cancel(); // Detiene el timer para evitar errores y fugas de memoria
+    super.dispose();
+  }
+
+  Future<void> _fetchUserDevices({bool isInitialLoad = false}) async {
+    // Solo mostramos el indicador de carga la primera vez
+    if (isInitialLoad) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = '';
+      });
+    }
 
     try {
-      _devices = await _apiService.getUserDevices();
+      final freshDevices = await _apiService.getUserDevices();
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          _devices = freshDevices;
+          // Solo si fue carga inicial, quitamos el indicador
+          if (isInitialLoad) {
+            _isLoading = false;
+          }
         });
       }
     } catch (e) {
@@ -351,7 +381,9 @@ class DeviceListScreenState extends State<DeviceListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mis Cámaras/Dispositivos'),
+        title: const Text('Mis Cámaras'),
+        backgroundColor: Color.fromARGB(255, 8, 25, 122),
+        foregroundColor: const Color.fromARGB(255, 255, 255, 255),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -421,7 +453,11 @@ class DeviceListScreenState extends State<DeviceListScreen> {
                           ),
                           title: Text('ID: $deviceId'),
                           subtitle: Text(
-                            'Modo: $currentMode ${isActive ? '(Online)' : '(Offline)'}',
+                            'Modo: ${currentMode == 'STREAMING_MODE'
+                                ? 'Streaming'
+                                : currentMode == 'CAPTURE_MODE'
+                                ? 'Captura'
+                                : currentMode == ''} ${isActive ? '(Online)' : '(Offline)'}',
                           ),
                           trailing: IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
@@ -430,6 +466,7 @@ class DeviceListScreenState extends State<DeviceListScreen> {
                           ),
                         ),
                         const Divider(),
+                        const SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
@@ -533,6 +570,7 @@ class DeviceListScreenState extends State<DeviceListScreen> {
                           ],
                         ),
                         const SizedBox(height: 10),
+                        const Divider(),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [

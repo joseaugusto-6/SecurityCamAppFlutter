@@ -2,6 +2,7 @@
 import 'package:flutter/foundation.dart';
 
 class PersonEvent {
+  final String id;
   final String personName;
   final DateTime timestamp;
   final String eventType;
@@ -10,6 +11,7 @@ class PersonEvent {
   final String deviceId;
 
   PersonEvent({
+    required this.id,
     required this.personName,
     required this.timestamp,
     required this.eventType,
@@ -33,6 +35,7 @@ class PersonEvent {
     }
 
     return PersonEvent(
+      id: json['id'] as String? ?? '',
       personName: json['person_name'] as String? ?? 'Desconocido',
       timestamp: parsedTimestamp,
       eventType: json['event_type'] as String? ?? 'unknown',

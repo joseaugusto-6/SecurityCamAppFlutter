@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:my_first_app/screens/event_history_screen.dart';
+import 'package:my_first_app/screens/event_image_viewer_screen.dart';
 import 'package:my_first_app/screens/face_registration_screen.dart';
 import 'package:my_first_app/services/auth_service.dart';
 import 'package:my_first_app/screens/login_screen.dart';
@@ -109,8 +111,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildLatestAlertCard() {
+    // Caso 1: No hay ninguna alerta crítica. Muestra "Todo en calma".
     if (_latestAlert == null) {
-      // Si no hay alertas, mostramos un mensaje tranquilizador
       return Card(
         elevation: 2,
         color: Colors.green[50],
@@ -139,7 +141,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    // Si SÍ hay una alerta, mostramos la tarjeta de advertencia
+    // Caso 2: SÍ hay una alerta. Muestra la tarjeta con imagen grande y botón funcional.
     return Card(
       elevation: 4,
       color: Colors.orange[50],
@@ -147,11 +149,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(color: Colors.orange.withOpacity(0.8)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
+      clipBehavior:
+          Clip.antiAlias, // Importante para que la imagen respete los bordes
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // --- Título y Botón "Ver Historial" ---
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+            child: Row(
               children: [
                 const Icon(
                   Icons.warning_amber_rounded,
@@ -163,29 +169,72 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   'Última Alerta Crítica',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
+                const Spacer(),
+                TextButton(
+                  child: const Text('Ver Historial'),
+                  onPressed: () {
+                    // Esta es la navegación clave que pasa el ID
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EventHistoryScreen(
+                          highlightEventId:
+                              _latestAlert!.id, // Le pasamos el ID de la alerta
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
-            const Divider(height: 20),
-            ListTile(
-              leading: CircleAvatar(
-                radius: 25,
-                backgroundImage: NetworkImage(_latestAlert!.imageUrl),
-              ),
-              title: Text(
-                _latestAlert!.personName,
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text(
-                _latestAlert!.eventType.replaceAll('_', ' ').toUpperCase(),
-              ),
-              trailing: Text(
-                // Lógica simple para mostrar "hace X tiempo"
-                'Hace ${DateTime.now().difference(_latestAlert!.timestamp.toLocal()).inMinutes} min',
-                style: TextStyle(color: Colors.grey[700]),
+          ),
+
+          // --- Imagen Grande del Evento ---
+          // --- CÓDIGO CORREGIDO (DESPUÉS) ---
+          if (_latestAlert!.imageUrl.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8.0, 4.0, 8.0, 8.0),
+              child: InkWell(
+                // <-- 1. Envolvemos con InkWell para hacerlo clickable
+                onTap: () {
+                  // <-- 2. Añadimos la acción onTap
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      // 3. Navegamos a la pantalla del visor de imágenes
+                      builder: (context) => EventImageViewerScreen(
+                        imageUrl: _latestAlert!.imageUrl,
+                      ),
+                    ),
+                  );
+                },
+                child: ClipRRect(
+                  // El ClipRRect ahora es el hijo del InkWell
+                  borderRadius: BorderRadius.circular(8.0),
+                  child: Image.network(
+                    _latestAlert!.imageUrl,
+                    height: 200,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
+
+          // --- Información del Evento (sin imagen en el leading) ---
+          ListTile(
+            contentPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            title: Text(
+              _latestAlert!.personName,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text('Cámara: ${_latestAlert!.deviceId}'),
+            trailing: Text(
+              'Hace ${DateTime.now().difference(_latestAlert!.timestamp.toLocal()).inMinutes} min',
+              style: TextStyle(color: Colors.grey[700]),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -283,10 +332,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final bool isAnyCameraAvailableForStream = _devices.any(
-      (d) => (d['is_on'] ?? false) && (d['is_active'] ?? false),
+      (d) =>
+          (d['is_on'] ?? false) &&
+          (d['is_active'] ?? false) &&
+          d['mode'] == 'STREAMING_MODE',
     );
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard de Seguridad')),
+      appBar: AppBar(
+        title: const Text(
+          'AI Security Cam',
+          style: TextStyle(color: Colors.white, fontSize: 30),
+        ),
+        backgroundColor: Color.fromARGB(255, 19, 195, 171),
+      ),
       body: _isLoadingDashboardInitial
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -332,34 +390,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         title: 'Mis Cámaras',
                         icon: Icons.devices,
                         color: const Color.fromARGB(255, 8, 25, 122),
-                        onPressed: () {
-                          Navigator.push(
+                        onPressed: () async {
+                          // <-- 1. Convertimos la función a async
+                          // 2. Navegamos y ESPERAMOS a que el usuario regrese de la pantalla de dispositivos
+                          await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => const DeviceListScreen(),
                             ),
                           );
+                          // 3. Justo cuando el usuario regresa, forzamos un refresco de los datos del dashboard
+                          print(
+                            "DEBUG: Regresando de DeviceListScreen, refrescando dashboard...",
+                          );
+                          _fetchDashboardData(isInitialLoad: false);
                         },
                       ),
                       _buildDashboardButton(
                         context,
                         title: 'Historial de Detecciones',
                         icon: Icons.history,
-                        color: const Color.fromARGB(255, 0, 234, 211),
-                        onPressed: () {
-                          Navigator.push(
+                        color: const Color.fromARGB(255, 11, 146, 173),
+                        onPressed: () async {
+                          await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => const EventHistoryScreen(),
                             ),
                           );
+                          // 3. Justo al regresar, refrescamos los datos del dashboard
+                          _fetchDashboardData(isInitialLoad: false);
                         },
                       ),
                       _buildDashboardButton(
                         context,
                         title: 'Registrar Rostro', // <-- NUEVO BOTÓN
                         icon: Icons.face_retouching_natural,
-                        color: Colors.teal, // O el color que prefieras
+                        color: Color.fromARGB(255, 19, 195, 171),
                         onPressed: () {
                           Navigator.push(
                             context,
@@ -399,26 +466,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             IconData iconData;
                             Color iconColor;
 
+                            // --- NUEVA VARIABLE PARA EL COLOR DEL TEXTO ---
+                            Color subtitleColor;
+
+                            String friendlyEventType;
+
                             switch (event.eventType) {
                               case 'known_person':
                                 titleText = event.personName;
+                                friendlyEventType = 'Acceso Registrado';
                                 iconData = Icons.person_outline;
                                 iconColor = Colors.green;
+                                subtitleColor = Colors
+                                    .green
+                                    .shade700; // <-- Color para el texto
                                 break;
                               case 'unknown_person':
+                              case 'unknown_person_repeat':
+                              case 'unknown_person_repeated_alarm':
                                 titleText = 'Desconocido';
+                                friendlyEventType = 'Alerta: Desconocido';
                                 iconData = Icons.warning_amber;
                                 iconColor = Colors.red;
+                                subtitleColor = Colors
+                                    .red
+                                    .shade700; // <-- Color para el texto
                                 break;
                               case 'alarm':
                                 titleText = 'ALARMA';
+                                friendlyEventType = 'Alarma Manual Activada';
                                 iconData = Icons.notifications_active;
                                 iconColor = Colors.orange;
+                                subtitleColor = Colors
+                                    .orange
+                                    .shade800; // <-- Color para el texto
                                 break;
                               default:
                                 titleText = 'Evento';
+                                friendlyEventType = event.eventType;
                                 iconData = Icons.info_outline;
                                 iconColor = Colors.grey;
+                                subtitleColor = Colors
+                                    .grey
+                                    .shade700; // <-- Color para el texto
                                 break;
                             }
 
@@ -433,24 +523,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         ),
                                         radius: 25,
                                         backgroundColor: Colors.grey[200],
-                                        onBackgroundImageError:
-                                            (exception, stackTrace) {
-                                              debugPrint(
-                                                'Error loading image: $exception',
-                                              ); // Usar debugPrint
-                                            },
                                       )
                                     : CircleAvatar(
+                                        // AHORA SÍ USAMOS iconData y iconColor
                                         radius: 25,
                                         backgroundColor: iconColor.withOpacity(
                                           0.2,
                                         ),
-                                        child: Icon(
-                                          iconData,
-                                          color: iconColor.withAlpha(
-                                            (0.2 * 255).round(),
-                                          ),
-                                        ),
+                                        child: Icon(iconData, color: iconColor),
                                       ),
                                 title: Text(
                                   titleText,
@@ -458,9 +538,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                subtitle: Text(
-                                  '${event.eventType} - ${event.timestamp.toLocal().toString().split('.')[0]}',
+                                // --- INICIO DEL CAMBIO A RICHTEXT ---
+                                subtitle: RichText(
+                                  text: TextSpan(
+                                    // Estilo por defecto para el subtítulo (el que usa la hora)
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                    ),
+                                    children: <TextSpan>[
+                                      // Primer fragmento de texto: el tipo de evento con su color
+                                      TextSpan(
+                                        text: friendlyEventType,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color:
+                                              subtitleColor, // <-- Usamos el color dinámico
+                                        ),
+                                      ),
+                                      // Segundo fragmento de texto: la hora, con el color por defecto
+                                      TextSpan(
+                                        text:
+                                            ' - ${DateFormat('h:mm a').format(event.timestamp.toLocal())}',
+                                      ),
+                                    ],
+                                  ),
                                 ),
+                                // --- FIN DEL CAMBIO A RICHTEXT ---
+
+                                // --- AÑADE ESTE NUEVO WIDGET ---
+                                trailing: Icon(
+                                  iconData, // Reutilizamos el ícono que ya definimos en el switch
+                                  color:
+                                      iconColor, // Reutilizamos el color que ya definimos
+                                  size: 28, // Un tamaño adecuado
+                                ),
+                                // ---------------------------------
                                 onTap: () {
                                   Navigator.push(
                                     context,
