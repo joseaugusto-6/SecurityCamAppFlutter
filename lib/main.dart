@@ -226,7 +226,18 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Security Cam App',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: ThemeData(
+        // Usamos colorScheme para un tema moderno (Material 3)
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Color.fromARGB(
+            255,
+            19,
+            195,
+            171,
+          ), // <-- ¡CAMBIAR COLOR DEL TEMA
+        ),
+        useMaterial3: true, // Esto activa el diseño moderno
+      ),
       navigatorKey: navigatorKey, // Asigna la GlobalKey al MaterialApp aquí.
       home: initialScreen, // Usa la pantalla inicial que se le pasó.
     );

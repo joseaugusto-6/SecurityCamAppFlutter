@@ -314,8 +314,8 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
           // Usamos AspectRatio para darle un tamaño fijo y proporcional
           AspectRatio(
             aspectRatio:
-                3.0 /
-                4.0, // Proporción (ancho/alto). 3/4 es un buen tamaño vertical.
+                4.5 /
+                8.0, // Proporción (ancho/alto). 3/4 es un buen tamaño vertical.
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: CameraPreview(_cameraController!),

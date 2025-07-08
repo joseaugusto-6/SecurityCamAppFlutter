@@ -44,6 +44,72 @@ class _NotificationSettingsScreenState
     }
   }
 
+  Widget _buildOptionCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required String value,
+  }) {
+    final bool isSelected = value == _currentPreference;
+    final Color selectedColor = Theme.of(context).primaryColor;
+
+    return Card(
+      elevation: isSelected ? 4 : 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isSelected ? selectedColor : Colors.grey.shade300,
+          width: isSelected ? 2.0 : 1.0,
+        ),
+      ),
+      child: InkWell(
+        onTap: () => _handlePreferenceChange(value),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? selectedColor : Colors.grey.shade600,
+                size: 30,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Radio<String>(
+                value: value,
+                groupValue: _currentPreference,
+                onChanged: (val) => _handlePreferenceChange(val!),
+                activeColor: selectedColor,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _handlePreferenceChange(String? value) async {
     if (value == null) return;
 
@@ -90,38 +156,36 @@ class _NotificationSettingsScreenState
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(8.0),
-              children: <Widget>[
-                const Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 20.0,
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '¿Cuándo te gustaría recibir notificaciones?',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                  child: Text(
-                    '¿Cuándo te gustaría recibir notificaciones push?',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  const SizedBox(height: 20),
+
+                  // Tarjeta para la opción "Todos los eventos"
+                  _buildOptionCard(
+                    title: 'Todos los eventos',
+                    subtitle: 'Recibirás una alerta por cualquier persona.',
+                    icon: Icons.notifications,
+                    value: 'all',
                   ),
-                ),
-                RadioListTile<String>(
-                  title: const Text('Todos los eventos'),
-                  subtitle: const Text(
-                    'Recibirás una alerta por cualquier persona detectada (conocida o desconocida).',
+
+                  const SizedBox(height: 12),
+
+                  // Tarjeta para la opción "Solo Alertas"
+                  _buildOptionCard(
+                    title: 'Solo Alertas Críticas',
+                    subtitle: 'Solo por desconocidos o alarmas.',
+                    icon: Icons.warning_amber_rounded,
+                    value: 'alerts_only',
                   ),
-                  value: 'all',
-                  groupValue: _currentPreference,
-                  onChanged: _handlePreferenceChange,
-                ),
-                RadioListTile<String>(
-                  title: const Text('Solo Alertas Críticas'),
-                  subtitle: const Text(
-                    'Solo recibirás alertas por personas desconocidas o eventos de alarma.',
-                  ),
-                  value: 'alerts_only',
-                  groupValue: _currentPreference,
-                  onChanged: _handlePreferenceChange,
-                ),
-              ],
+                ],
+              ),
             ),
     );
   }

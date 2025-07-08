@@ -4,6 +4,7 @@ import 'package:my_first_app/screens/event_history_screen.dart';
 import 'package:my_first_app/screens/event_image_viewer_screen.dart';
 import 'package:my_first_app/screens/face_registration_screen.dart';
 import 'package:my_first_app/screens/notification_settings_screen.dart';
+import 'package:my_first_app/screens/profile_settings_screen';
 import 'package:my_first_app/services/auth_service.dart';
 import 'package:my_first_app/screens/login_screen.dart';
 import 'package:my_first_app/services/api_service.dart';
@@ -363,13 +364,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             subtitle: Text('Cámara: ${_latestAlert!.deviceId}'),
             trailing: Text(
-              'Hace ${DateTime.now().difference(_latestAlert!.timestamp.toLocal()).inMinutes} min',
+              _formatRelativeTime(_latestAlert!.timestamp),
               style: TextStyle(color: Colors.grey[700]),
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _formatRelativeTime(DateTime timestamp) {
+    final now = DateTime.now();
+    // Asegúrate de comparar con la hora local del dispositivo
+    final difference = now.difference(timestamp.toLocal());
+
+    if (difference.inDays > 0) {
+      // Si ha pasado más de un día
+      return 'Hace ${difference.inDays} día${difference.inDays == 1 ? '' : 's'}';
+    } else if (difference.inHours > 0) {
+      // Si ha pasado más de una hora
+      return 'Hace ${difference.inHours} hora${difference.inHours == 1 ? '' : 's'}';
+    } else if (difference.inMinutes > 0) {
+      // Si ha pasado más de un minuto
+      return 'Hace ${difference.inMinutes} min';
+    } else {
+      // Si acaba de ocurrir
+      return 'Ahora mismo';
+    }
   }
 
   Future<void> _fetchDashboardData({required bool isInitialLoad}) async {
@@ -487,19 +508,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         foregroundColor: Colors.white,
         actions: <Widget>[
           IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: 'Ajustes',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationSettingsScreen(),
-                ),
-              );
-            },
-          ),
-          // <-- Añadimos la propiedad actions (si no existía)
-          IconButton(
             icon: const Icon(Icons.info_outline), // El ícono de información
             onPressed: () {
               // Aquí irá la lógica para mostrar la ayuda
@@ -548,6 +556,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ? _handleLiveStreamNavigation
                             : null,
                       ),
+
                       _buildDashboardButton(
                         context,
                         title: 'Mis Cámaras',
@@ -569,6 +578,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _fetchDashboardData(isInitialLoad: false);
                         },
                       ),
+
                       _buildDashboardButton(
                         context,
                         title: 'Historial de Detecciones',
@@ -585,6 +595,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _fetchDashboardData(isInitialLoad: false);
                         },
                       ),
+
                       _buildDashboardButton(
                         context,
                         title: 'Registrar Rostro', // <-- NUEVO BOTÓN
@@ -601,6 +612,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         },
                       ),
                     ],
+                  ),
+
+                  _buildDashboardButton(
+                    context,
+                    title: 'Notificaciones',
+                    icon: Icons.notifications_active_outlined,
+                    color: Colors.purple, // Un nuevo color para distinguirlo
+                    onPressed: () {
+                      // La misma navegación que tenía el botón anterior
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const NotificationSettingsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  _buildDashboardButton(
+                    context,
+                    title: 'Mi Perfil',
+                    icon: Icons.person_outline,
+                    color: const Color.fromARGB(
+                      255,
+                      5,
+                      84,
+                      230,
+                    ), // Un nuevo color
+                    onPressed: () {
+                      // Navegará a la nueva pantalla que crearemos a continuación
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ProfileSettingsScreen(),
+                        ),
+                      );
+                    },
                   ),
 
                   const SizedBox(height: 30),

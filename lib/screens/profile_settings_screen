@@ -1,0 +1,121 @@
+import 'package:flutter/material.dart';
+import 'package:my_first_app/services/api_service.dart';
+
+class ProfileSettingsScreen extends StatefulWidget {
+  const ProfileSettingsScreen({super.key});
+
+  @override
+  State<ProfileSettingsScreen> createState() => _ProfileSettingsScreenState();
+}
+
+class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
+  final ApiService _apiService = ApiService();
+  Future<Map<String, dynamic>>? _summaryFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _summaryFuture = _apiService.getProfileSummary();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Mi Perfil'),
+        foregroundColor: Colors.white,
+        backgroundColor: Color.fromARGB(
+                      255,
+                      5,
+                      84,
+                      230,
+                    ), 
+      ),
+      body: FutureBuilder<Map<String, dynamic>>(
+  future: _summaryFuture,
+  builder: (context, snapshot) {
+    // Casos de Cargando y Error (sin cambios)
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (snapshot.hasError) {
+      return Center(child: Text('Error al cargar el perfil: ${snapshot.error}'));
+    }
+    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+      return const Center(child: Text('No se encontraron datos del perfil.'));
+    }
+
+    // --- LÓGICA MODIFICADA PARA MOSTRAR LA LISTA DE NOMBRES ---
+    final summary = snapshot.data!;
+    final notificationPrefText = summary['notification_preference'] == 'all'
+        ? 'Todos los eventos'
+        : 'Solo Alertas Críticas';
+
+    // Obtenemos la lista de nombres y la formateamos para mostrarla
+    final List<dynamic> registeredNames = summary['registered_names'] ?? [];
+    final String namesText = registeredNames.isEmpty 
+        ? 'Ninguno todavía. Registra un rostro desde la app.' 
+        : registeredNames.join(', '); // Une los nombres con una coma
+
+    return ListView(
+      padding: const EdgeInsets.all(16.0),
+      children: [
+        _buildInfoTile(
+          icon: Icons.person_outline,
+          title: 'Nombre',
+          subtitle: summary['name'],
+        ),
+        _buildInfoTile(
+          icon: Icons.email_outlined,
+          title: 'Correo Electrónico',
+          subtitle: summary['email'],
+        ),
+        const Divider(height: 30),
+        _buildInfoTile(
+          icon: Icons.camera_alt_outlined,
+          title: 'Dispositivos Vinculados',
+          subtitle: '${summary['device_count']} cámaras registradas',
+        ),
+        // Reemplazamos el tile de "Registro Facial" por este más informativo
+        _buildInfoTile(
+          icon: Icons.face_retouching_natural,
+          title: 'Rostros Registrados (${registeredNames.length})',
+          subtitle: namesText, // Mostramos la lista de nombres
+          statusColor: registeredNames.isNotEmpty ? Colors.green : Colors.orange,
+        ),
+        _buildInfoTile(
+          icon: Icons.notifications_active_outlined,
+          title: 'Preferencia de Notificaciones',
+          subtitle: notificationPrefText,
+        ),
+      ],
+    );
+  },
+)
+    );
+  }
+
+  // Widget de ayuda para crear cada fila de información
+  Widget _buildInfoTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    Color? statusColor,
+  }) {
+    return Card(
+      elevation: 2,
+      child: ListTile(
+        leading: Icon(icon, color: Theme.of(context).primaryColor),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 16,
+            color: statusColor ?? Colors.grey[700],
+            fontWeight: statusColor != null ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+}

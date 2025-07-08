@@ -18,6 +18,28 @@ class ApiService {
     : _secureStorage = secureStorage ?? const FlutterSecureStorage(),
       _authService = authService ?? AuthService();
 
+  // Pega este método dentro de la clase ApiService
+  Future<Map<String, dynamic>> getProfileSummary() async {
+    try {
+      final String? token = await _authService.getJwtToken();
+      if (token == null) throw Exception('User not authenticated.');
+
+      final response = await http.get(
+        Uri.parse('${ApiService.BASE_URL}/user/profile_summary'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to load profile summary.');
+      }
+    } catch (e) {
+      debugPrint('DEBUG_API: Error fetching profile summary: $e');
+      rethrow;
+    }
+  }
+
   Future<Map<String, dynamic>> getUserSettings() async {
     try {
       final String? token = await _authService.getJwtToken();
