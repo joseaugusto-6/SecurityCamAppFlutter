@@ -11,7 +11,7 @@ import 'package:my_first_app/services/api_service.dart';
 import 'package:my_first_app/models/person_event.dart';
 import 'package:my_first_app/screens/device_list_screen.dart';
 import 'package:my_first_app/screens/live_stream_screen.dart';
-
+import 'package:my_first_app/screens/face_management_screen.dart';
 import 'dart:async';
 
 class DashboardScreen extends StatefulWidget {
@@ -324,7 +324,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
 
           // --- Imagen Grande del Evento ---
-          // --- CÓDIGO CORREGIDO (DESPUÉS) ---
           if (_latestAlert!.imageUrl.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(8.0, 4.0, 8.0, 8.0),
@@ -606,7 +605,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
-                                  const FaceRegistrationScreen(),
+                                  const FaceManagementScreen(),
                             ),
                           );
                         },

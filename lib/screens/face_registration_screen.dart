@@ -154,7 +154,11 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Registro Facial')),
+      appBar: AppBar(
+        title: const Text('Registro Facial'),
+        backgroundColor: Color.fromARGB(255, 19, 195, 171),
+        foregroundColor: Colors.white,
+      ),
       body: LayoutBuilder(
         builder: (context, constraints) {
           // LayoutBuilder nos da el tamaño del área disponible (constraints).
@@ -310,21 +314,18 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
       child: Column(
         // Esta columna organiza todo el contenido de la pantalla de captura
         children: [
-          // 1. EL CUADRO DE LA CÁMARA
-          // Usamos AspectRatio para darle un tamaño fijo y proporcional
-          AspectRatio(
-            aspectRatio:
-                4.5 /
-                8.0, // Proporción (ancho/alto). 3/4 es un buen tamaño vertical.
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: CameraPreview(_cameraController!),
+          SizedBox(
+            height:
+                350, // <-- PUEDES JUGAR CON ESTE VALOR para cambiar el tamaño
+            child: AspectRatio(
+              aspectRatio: 9.0 / 16.0,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: CameraPreview(_cameraController!),
+              ),
             ),
           ),
-
-          const SizedBox(
-            height: 24,
-          ), // Un espacio entre la cámara y el progreso
+          const SizedBox(height: 24),
           // 2. EL CONTADOR Y LA BARRA DE PROGRESO
           Text(
             '${_capturedImages.length} / $_captureGoal fotos capturadas',
@@ -382,6 +383,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 30),
         ],
       ),
     );

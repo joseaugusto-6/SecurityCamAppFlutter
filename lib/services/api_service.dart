@@ -40,6 +40,36 @@ class ApiService {
     }
   }
 
+  Future<void> deleteRegisteredFace(String personName) async {
+    try {
+      final String? token = await _authService.getJwtToken();
+      if (token == null) throw Exception('User not authenticated.');
+
+      // El método http.delete puede llevar un body si se configura correctamente
+      final request = http.Request(
+        'DELETE',
+        Uri.parse('${ApiService.BASE_URL}/embeddings/delete'),
+      );
+      request.headers.addAll({
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      });
+      request.body = json.encode({'person_name': personName});
+
+      final response = await request.send();
+
+      if (response.statusCode != 200) {
+        // Leemos el cuerpo del error si lo hay
+        final responseBody = await response.stream.bytesToString();
+        final errorData = json.decode(responseBody);
+        throw Exception(errorData['msg'] ?? 'Failed to delete face.');
+      }
+    } catch (e) {
+      debugPrint('DEBUG_API: Error deleting registered face: $e');
+      rethrow;
+    }
+  }
+
   Future<Map<String, dynamic>> getUserSettings() async {
     try {
       final String? token = await _authService.getJwtToken();
