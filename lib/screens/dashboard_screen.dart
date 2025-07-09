@@ -494,16 +494,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         leading: Padding(
           padding: const EdgeInsets.fromLTRB(7, 0, 0, 0),
-          child: Image.asset(
-            'assets/images/logo.png', // <-- PON EL NOMBRE EXACTO DE TU ARCHIVO
-          ),
+          child: Image.asset('assets/images/logo.png'),
         ),
         title: const Text(
           'AI Security Cam',
           style: TextStyle(color: Colors.white, fontSize: 30),
         ),
         centerTitle: true,
-        backgroundColor: Color.fromARGB(255, 19, 195, 171),
+        backgroundColor: Color.fromARGB(255, 10, 194, 255),
         foregroundColor: Colors.white,
         actions: <Widget>[
           IconButton(

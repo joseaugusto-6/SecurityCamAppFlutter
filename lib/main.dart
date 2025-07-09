@@ -231,9 +231,9 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           seedColor: Color.fromARGB(
             255,
-            19,
-            195,
-            171,
+            1,
+            204,
+            255,
           ), // <-- ¡CAMBIAR COLOR DEL TEMA
         ),
         useMaterial3: true, // Esto activa el diseño moderno

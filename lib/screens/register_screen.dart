@@ -1,34 +1,35 @@
-// Archivo: lib/screens/login_screen.dart
+// Archivo: lib/screens/register_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:my_first_app/screens/dashboard_screen.dart';
-import 'package:my_first_app/services/auth_service.dart';
-import 'package:my_first_app/screens/register_screen.dart'; // Importamos la nueva pantalla
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:my_first_app/services/api_service.dart'; // Usaremos la URL base
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final AuthService _authService = AuthService();
   bool _isLoading = false;
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  Future<void> _login() async {
+  Future<void> _register() async {
     if (!_formKey.currentState!.validate()) {
-      return;
+      return; // Si el formulario no es válido, no hacemos nada.
     }
 
     setState(() {
@@ -36,23 +37,33 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final loginResult = await _authService.login(
-        _emailController.text.trim().toLowerCase(),
-        _passwordController.text.trim(),
+      final response = await http.post(
+        Uri.parse('${ApiService.BASE_URL}/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'name': _nameController.text.trim(),
+          'email': _emailController.text.trim().toLowerCase(),
+          'password': _passwordController.text.trim(),
+        }),
       );
 
       if (!mounted) return;
 
-      if (loginResult['success']) {
-        await _authService.sendFcmTokenToBackend("placeholder");
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+      final responseData = json.decode(response.body);
+      if (response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              '¡Usuario registrado con éxito! Ahora puedes iniciar sesión.',
+            ),
+            backgroundColor: Colors.green,
+          ),
         );
+        Navigator.of(context).pop(); // Regresa a la pantalla de login
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(loginResult['msg'] ?? 'Error de inicio de sesión.'),
+            content: Text(responseData['msg'] ?? 'Error al registrar.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -60,20 +71,25 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error de conexión: ${e.toString()}')),
+        SnackBar(
+          content: Text('Error de conexión: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Crear Nueva Cuenta'),
+        foregroundColor: Colors.white,
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -84,23 +100,33 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Image.asset(
-                  'assets/images/Logo_IA.png', // <-- Usa la ruta a tu logo
-                  height: 120, // Ajusta el tamaño como prefieras
+                  'assets/images/Logo_IA.png', // <-- Usa la misma ruta
+                  height: 120, // Mantén el mismo tamaño para consistencia
                 ),
-
-                const SizedBox(height: 20),
+                const SizedBox(height: 10),
                 const Text(
-                  'Bienvenido de Nuevo',
+                  'Bienvenido',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Inicia sesión en tu cuenta',
+                  'Crea una cuenta para empezar',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 16, color: Colors.grey),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre Completo',
+                    prefixIcon: Icon(Icons.person),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) =>
+                      value!.isEmpty ? 'Introduce tu nombre' : null,
+                ),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(
@@ -122,32 +148,25 @@ class _LoginScreenState extends State<LoginScreen> {
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) =>
-                      value!.isEmpty ? 'Introduce tu contraseña' : null,
+                      value!.isEmpty ? 'Introduce una contraseña' : null,
                 ),
                 const SizedBox(height: 24),
                 if (_isLoading)
                   const Center(child: CircularProgressIndicator())
                 else
                   ElevatedButton(
-                    onPressed: _login,
+                    onPressed: _register,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: const Text(
-                      'Iniciar Sesión',
+                      'Registrarse',
                       style: TextStyle(fontSize: 16),
                     ),
                   ),
                 TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const RegisterScreen(),
-                      ),
-                    );
-                  },
-                  child: const Text('¿No tienes una cuenta? Regístrate'),
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('¿Ya tienes una cuenta? Inicia Sesión'),
                 ),
               ],
             ),
