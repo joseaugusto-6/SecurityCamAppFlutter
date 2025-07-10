@@ -671,56 +671,70 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           itemCount: _latestEvents.length,
                           itemBuilder: (context, index) {
                             final event = _latestEvents[index];
+
+                            // --- Declaración de variables que usaremos ---
                             String titleText;
                             IconData iconData;
                             Color iconColor;
-
-                            // --- NUEVA VARIABLE PARA EL COLOR DEL TEXTO ---
+                            String friendlyEventType;
                             Color subtitleColor;
 
-                            String friendlyEventType;
-
+                            // --- Lógica COMPLETA para asignar valores según el tipo de evento ---
                             switch (event.eventType) {
                               case 'known_person':
                                 titleText = event.personName;
                                 friendlyEventType = 'Acceso Registrado';
                                 iconData = Icons.person_outline;
                                 iconColor = Colors.green;
-                                subtitleColor = Colors
-                                    .green
-                                    .shade700; // <-- Color para el texto
+                                subtitleColor = Colors.green.shade700;
                                 break;
+
+                              // --- BLOQUE CORREGIDO Y AMPLIADO ---
                               case 'unknown_person':
                               case 'unknown_person_repeat':
                               case 'unknown_person_repeated_alarm':
-                                titleText = 'Desconocido';
-                                friendlyEventType = 'Alerta: Desconocido';
-                                iconData = Icons.warning_amber;
+                              case 'unknown_group':
+                                if (event.eventType == 'unknown_group') {
+                                  titleText =
+                                      'Grupo Detectado'; // Título específico para grupos
+                                  iconData = Icons
+                                      .groups; // Ícono específico para grupos
+                                } else {
+                                  titleText = 'Desconocido';
+                                  iconData = Icons.warning_amber;
+                                }
+                                friendlyEventType =
+                                    'Alerta de Seguridad'; // Subtítulo genérico y útil
                                 iconColor = Colors.red;
-                                subtitleColor = Colors
-                                    .red
-                                    .shade700; // <-- Color para el texto
+                                subtitleColor = Colors.red.shade700;
                                 break;
+
+                              case 'person_no_face_alarm':
+                                titleText = 'Posible Intruso';
+                                friendlyEventType = 'Alerta: Rostro Cubierto';
+                                iconData = Icons.visibility_off;
+                                iconColor = Colors.deepOrange;
+                                subtitleColor = Colors.deepOrange.shade700;
+                                break;
+
                               case 'alarm':
                                 titleText = 'ALARMA';
                                 friendlyEventType = 'Alarma Manual Activada';
                                 iconData = Icons.notifications_active;
                                 iconColor = Colors.orange;
-                                subtitleColor = Colors
-                                    .orange
-                                    .shade800; // <-- Color para el texto
+                                subtitleColor = Colors.orange.shade800;
                                 break;
+
                               default:
                                 titleText = 'Evento';
                                 friendlyEventType = event.eventType;
                                 iconData = Icons.info_outline;
                                 iconColor = Colors.grey;
-                                subtitleColor = Colors
-                                    .grey
-                                    .shade700; // <-- Color para el texto
+                                subtitleColor = Colors.grey.shade700;
                                 break;
                             }
 
+                            // Construcción de la tarjeta con todas las variables correctas
                             return Card(
                               margin: const EdgeInsets.symmetric(vertical: 8),
                               elevation: 2,
@@ -734,7 +748,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         backgroundColor: Colors.grey[200],
                                       )
                                     : CircleAvatar(
-                                        // AHORA SÍ USAMOS iconData y iconColor
                                         radius: 25,
                                         backgroundColor: iconColor.withOpacity(
                                           0.2,
@@ -747,25 +760,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                // --- INICIO DEL CAMBIO A RICHTEXT ---
                                 subtitle: RichText(
                                   text: TextSpan(
-                                    // Estilo por defecto para el subtítulo (el que usa la hora)
                                     style: TextStyle(
                                       fontSize: 14,
                                       color: Colors.grey[600],
                                     ),
                                     children: <TextSpan>[
-                                      // Primer fragmento de texto: el tipo de evento con su color
                                       TextSpan(
                                         text: friendlyEventType,
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color:
-                                              subtitleColor, // <-- Usamos el color dinámico
+                                          color: subtitleColor,
                                         ),
                                       ),
-                                      // Segundo fragmento de texto: la hora, con el color por defecto
                                       TextSpan(
                                         text:
                                             ' - ${DateFormat('h:mm a').format(event.timestamp.toLocal())}',
@@ -773,22 +781,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ],
                                   ),
                                 ),
-                                // --- FIN DEL CAMBIO A RICHTEXT ---
-
-                                // --- AÑADE ESTE NUEVO WIDGET ---
                                 trailing: Icon(
-                                  iconData, // Reutilizamos el ícono que ya definimos en el switch
-                                  color:
-                                      iconColor, // Reutilizamos el color que ya definimos
-                                  size: 28, // Un tamaño adecuado
+                                  iconData,
+                                  color: iconColor,
+                                  size: 28,
                                 ),
-                                // ---------------------------------
                                 onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) =>
-                                          const EventHistoryScreen(),
+                                      builder: (context) => EventHistoryScreen(
+                                        highlightEventId: event.id,
+                                      ),
                                     ),
                                   );
                                 },

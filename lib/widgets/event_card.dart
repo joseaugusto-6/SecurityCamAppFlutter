@@ -48,6 +48,13 @@ class EventCard extends StatelessWidget {
         iconColor = Colors.red;
         break;
 
+      case 'person_no_face_alarm':
+        titleText = 'Alerta: Posible Intruso';
+        subtitleText = 'Se detectó una persona cubriendo su rostro.';
+        iconData = Icons.visibility_off; // Ícono de "visibilidad desactivada"
+        iconColor = Colors.deepOrange;
+        break;
+
       case 'alarm':
         titleText = '¡Alarma Activada!';
         subtitleText =
