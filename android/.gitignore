@@ -12,3 +12,9 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# Para google-services.json
+android/app/google-services.json # <--- ¡Asegúrate que esta línea esté para no subirlo!
+*.jks
+*.keystore
+*.properties
