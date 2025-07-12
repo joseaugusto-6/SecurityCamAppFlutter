@@ -520,149 +520,158 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Sección de Estadísticas Rápidas (Resumen Diario)
+                  // --- SECCIÓN 1: ESTADO DEL SISTEMA ---
                   const Text(
                     'Estado del Sistema',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.left,
                   ),
-
-                  const SizedBox(height: 20),
-
+                  const SizedBox(height: 12),
                   _buildLatestAlertCard(),
 
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 24),
 
-                  GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16.0,
-                    mainAxisSpacing: 16.0,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      _buildDashboardButton(
-                        context,
-                        title: 'Video en Vivo',
-                        icon: Icons.videocam,
-                        // El color cambia si el botón está deshabilitado
-                        color: isAnyCameraAvailableForStream
-                            ? Colors.blue
-                            : Colors.grey,
-                        // La acción es nuestra nueva función si está disponible, o null si no lo está (lo deshabilita)
-                        onPressed: isAnyCameraAvailableForStream
-                            ? _handleLiveStreamNavigation
-                            : null,
-                      ),
-
-                      _buildDashboardButton(
-                        context,
-                        title: 'Mis Cámaras',
-                        icon: Icons.devices,
-                        color: const Color.fromARGB(255, 8, 25, 122),
-                        onPressed: () async {
-                          // <-- 1. Convertimos la función a async
-                          // 2. Navegamos y ESPERAMOS a que el usuario regrese de la pantalla de dispositivos
-                          await Navigator.push(
+                  const Text(
+                    'Panel de Control', // <-- Título que querías
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.left,
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    // <-- Envolvemos los botones en una tarjeta
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: GridView.count(
+                        crossAxisCount:
+                            2, // Cambiamos a 3 columnas para que quepan bien
+                        crossAxisSpacing: 5.0,
+                        mainAxisSpacing: 5.0,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          _buildDashboardButton(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => const DeviceListScreen(),
-                            ),
-                          );
-                          // 3. Justo cuando el usuario regresa, forzamos un refresco de los datos del dashboard
-                          print(
-                            "DEBUG: Regresando de DeviceListScreen, refrescando dashboard...",
-                          );
-                          _fetchDashboardData(isInitialLoad: false);
-                        },
-                      ),
-
-                      _buildDashboardButton(
-                        context,
-                        title: 'Historial de Detecciones',
-                        icon: Icons.history,
-                        color: const Color.fromARGB(255, 11, 146, 173),
-                        onPressed: () async {
-                          await Navigator.push(
+                            title: 'Video en Vivo',
+                            icon: Icons.videocam,
+                            color: isAnyCameraAvailableForStream
+                                ? Colors.blue
+                                : Colors.grey,
+                            onPressed: isAnyCameraAvailableForStream
+                                ? _handleLiveStreamNavigation
+                                : null,
+                          ),
+                          _buildDashboardButton(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => const EventHistoryScreen(),
-                            ),
-                          );
-                          // 3. Justo al regresar, refrescamos los datos del dashboard
-                          _fetchDashboardData(isInitialLoad: false);
-                        },
-                      ),
-
-                      _buildDashboardButton(
-                        context,
-                        title: 'Registrar Rostro', // <-- NUEVO BOTÓN
-                        icon: Icons.face_retouching_natural,
-                        color: Color.fromARGB(255, 19, 195, 171),
-                        onPressed: () {
-                          Navigator.push(
+                            title: 'Mis Cámaras',
+                            icon: Icons.devices,
+                            color: const Color.fromARGB(255, 8, 25, 122),
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const DeviceListScreen(),
+                                ),
+                              );
+                              _fetchDashboardData(isInitialLoad: false);
+                            },
+                          ),
+                          _buildDashboardButton(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const FaceManagementScreen(),
-                            ),
-                          );
-                        },
+                            title: 'Historial',
+                            icon: Icons.history,
+                            color: const Color.fromARGB(255, 11, 146, 173),
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const EventHistoryScreen(),
+                                ),
+                              );
+                              _fetchDashboardData(isInitialLoad: false);
+                            },
+                          ),
+                          _buildDashboardButton(
+                            context,
+                            title: 'Registrar Rostro',
+                            icon: Icons.face_retouching_natural,
+                            color: const Color.fromARGB(255, 19, 195, 171),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const FaceManagementScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          _buildDashboardButton(
+                            context,
+                            title: 'Notificaciones',
+                            icon: Icons.notifications_active_outlined,
+                            color: Colors.purple,
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const NotificationSettingsScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          _buildDashboardButton(
+                            context,
+                            title: 'Mi Perfil',
+                            icon: Icons.person_outline,
+                            color: const Color.fromARGB(255, 5, 84, 230),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const ProfileSettingsScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
 
-                  _buildDashboardButton(
-                    context,
-                    title: 'Notificaciones',
-                    icon: Icons.notifications_active_outlined,
-                    color: Colors.purple, // Un nuevo color para distinguirlo
-                    onPressed: () {
-                      // La misma navegación que tenía el botón anterior
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              const NotificationSettingsScreen(),
-                        ),
-                      );
-                    },
-                  ),
-
-                  _buildDashboardButton(
-                    context,
-                    title: 'Mi Perfil',
-                    icon: Icons.person_outline,
-                    color: const Color.fromARGB(
-                      255,
-                      5,
-                      84,
-                      230,
-                    ), // Un nuevo color
-                    onPressed: () {
-                      // Navegará a la nueva pantalla que crearemos a continuación
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ProfileSettingsScreen(),
-                        ),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 24),
 
                   // Sección de Actividad Reciente
                   const Text(
                     'Actividad Reciente',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.left,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                   _latestEvents.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'No hay actividad reciente para mostrar.',
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ? const Card(
+                          child: Padding(
+                            padding: EdgeInsets.all(24.0),
+                            child: Center(
+                              child: Text(
+                                'No hay actividad reciente para mostrar.',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
                           ),
                         )
                       : ListView.builder(
@@ -850,7 +859,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 30, color: Colors.white),
+              Icon(icon, size: 50, color: Colors.white),
               const SizedBox(height: 10),
               Text(
                 title,

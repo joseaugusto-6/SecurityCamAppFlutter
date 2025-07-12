@@ -19,6 +19,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 // GlobalKey para acceder al contexto del Navigator y ScaffoldMessenger desde cualquier parte.
 // Es necesaria para mostrar SnackBar o diálogos desde funciones fuera de un Widget.
+DateTime? _lastInAppNotificationShown;
+const Duration _inAppNotificationCooldown = Duration(seconds: 15);
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
@@ -56,49 +58,87 @@ void main() async {
   // Manejar mensajes en primer plano (cuando la app está abierta y activa).
   // Estos mensajes no aparecen automáticamente en la bandeja de notificaciones;
   // deben ser manejados por el código de la app.
+  // Reemplaza tu bloque FirebaseMessaging.onMessage.listen completo por este
+
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     print('DEBUG: Got a message whilst in the foreground!');
-    print('DEBUG: Message data: ${message.data}');
 
     if (message.notification != null) {
       print(
-        'DEBUG: Message also contained a notification: ${message.notification!.title} / ${message.notification!.body}',
+        'DEBUG: Message also contained a notification: ${message.notification!.title}',
       );
-      // Aquí mostramos la SnackBar para notificaciones en primer plano.
-      if (navigatorKey.currentContext != null) {
+
+      // --- INICIO DE LA LÓGICA DE COOLDOWN ---
+      final now = DateTime.now();
+      bool shouldShowNotification = false;
+
+      if (_lastInAppNotificationShown == null ||
+          now.difference(_lastInAppNotificationShown!) >
+              _inAppNotificationCooldown) {
+        shouldShowNotification = true;
+        _lastInAppNotificationShown =
+            now; // Actualizamos la hora de la última notificación
+      }
+      // --- FIN DE LA LÓGICA DE COOLDOWN ---
+
+      if (shouldShowNotification && navigatorKey.currentContext != null) {
+        // Ocultamos cualquier SnackBar anterior para evitar que se apilen
+        ScaffoldMessenger.of(
+          navigatorKey.currentContext!,
+        ).hideCurrentSnackBar();
+
+        // Mostramos una SnackBar con un diseño mejorado
         ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
           SnackBar(
-            content: Text(
-              message.notification!.body ?? 'Nueva notificación',
-            ), // Muestra el cuerpo de la notificación
+            content: Row(
+              children: [
+                Icon(
+                  Icons.notifications_active,
+                  color: Colors.white.withOpacity(0.8),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        message.notification!.title ?? 'Nueva Alerta',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        message.notification!.body ??
+                            'Revisa la actividad reciente.',
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             action: SnackBarAction(
-              label: 'Ver', // Botón en la SnackBar
+              label: 'Ver',
+              textColor: Colors.yellow,
               onPressed: () {
-                // --- INICIO DE LA LÓGICA DE NAVEGACIÓN ---
-                // Oculta la SnackBar antes de navegar para evitar conflictos visuales
-                ScaffoldMessenger.of(
-                  navigatorKey.currentContext!,
-                ).hideCurrentSnackBar();
-
-                // Navega a la EventHistoryScreen
-                navigatorKey.currentState!.push(
+                navigatorKey.currentState?.push(
                   MaterialPageRoute(
                     builder: (context) => const EventHistoryScreen(),
                   ),
                 );
-                // --- FIN DE LA LÓGICA DE NAVEGACIÓN ---
-
-                print(
-                  'DEBUG: SnackBar Action Pressed and navigating to history',
-                );
               },
             ),
-            duration: const Duration(seconds: 5), // Duración de la SnackBar
-            backgroundColor: Colors.blueAccent, // Color de fondo de la SnackBar
-            behavior:
-                SnackBarBehavior.floating, // Para que flote sobre el contenido
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(10),
+            backgroundColor: const Color(
+              0xFF33373E,
+            ), // Un color oscuro y moderno
+            duration: const Duration(seconds: 5),
           ),
         );
+      } else {
+        print('DEBUG: In-app notification suppressed due to cooldown.');
       }
     }
   });
