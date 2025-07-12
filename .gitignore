@@ -70,7 +70,7 @@ android/app/src/debug/
 android/app/src/profile/
 android/local.properties
 # Para el archivo google-services.json y credenciales
-android/app/google-services.json # <--- ¡Asegúrate que esta línea esté para no subirlo!
+android/app/google-services.json 
 *.jks
 *.keystore
 *.properties
